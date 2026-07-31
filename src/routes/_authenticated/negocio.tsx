@@ -89,6 +89,7 @@ function BusinessPage() {
     pie_pagina: "",
     iva_percent: 19,
     next_quote_number: 1,
+    color_factura: "#0b2545",
   };
 
   function patch(patchValue: Partial<Business>) {
@@ -184,6 +185,19 @@ function BusinessPage() {
                 />
               </div>
             ))}
+            <div className="space-y-1.5">
+              <Label htmlFor="biz-color">Color de factura</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="biz-color"
+                  type="color"
+                  className="w-14 h-10 p-1 cursor-pointer"
+                  value={current.color_factura || "#0b2545"}
+                  onChange={(event) => patch({ color_factura: event.target.value })}
+                />
+                <span className="text-sm text-muted-foreground uppercase">{current.color_factura || "#0b2545"}</span>
+              </div>
+            </div>
             <div className="space-y-1.5">
               <Label htmlFor="biz-iva">IVA por defecto (%)</Label>
               <Input

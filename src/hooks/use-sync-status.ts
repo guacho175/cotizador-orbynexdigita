@@ -38,7 +38,7 @@ export function useSyncStatus() {
       setLast(await lastSyncAt());
     },
     dismissConflicts: async () => {
-      await db.conflicts.where("seen").equals(0).modify({ seen: 1 });
+      await db.conflicts.clear();
     },
   };
 }

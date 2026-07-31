@@ -290,6 +290,7 @@ export interface QuoteDocumentProps {
 
 export function QuoteDocument({ quote, items, business, client, logoDataUrl }: QuoteDocumentProps) {
   const validUntil = addDays(quote.fecha, quote.validez_dias || 0);
+  const themeColor = business.color_factura || NAVY;
 
   return (
     <Document
@@ -297,7 +298,7 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
       author={business.nombre || "Cotización"}
     >
       <Page size="A4" style={styles.page} wrap>
-        <View style={styles.headerBar} fixed>
+        <View style={[styles.headerBar, { backgroundColor: themeColor }]} fixed>
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             {logoDataUrl ? <Image src={logoDataUrl} style={styles.logo} /> : null}
             <View style={{ flex: 1 }}>
@@ -377,7 +378,7 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
               <Text style={styles.observacionText}>IVA ({quote.iva_percent}%)</Text>
               <Text style={styles.observacionText}>{money(quote.iva)}</Text>
             </View>
-            <View style={styles.grandTotal}>
+            <View style={[styles.grandTotal, { backgroundColor: themeColor }]}>
               <Text style={styles.grandLabel}>TOTAL</Text>
               <Text style={styles.grandValue}>{money(quote.total)}</Text>
             </View>

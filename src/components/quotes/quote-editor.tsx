@@ -277,10 +277,18 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
                       type="number"
                       min={0}
                       inputMode="decimal"
-                      value={item.cantidad}
-                      onChange={(event) =>
-                        patchItem(item.id, { cantidad: Number(event.target.value) || 0 })
-                      }
+                      value={item.cantidad === 0 ? "" : item.cantidad}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        if (val === "") {
+                          patchItem(item.id, { cantidad: 0 });
+                        } else {
+                          const num = Number(val);
+                          if (!isNaN(num) && num >= 0) {
+                            patchItem(item.id, { cantidad: num });
+                          }
+                        }
+                      }}
                     />
                   </div>
                   <div className="w-32 space-y-1">
@@ -289,10 +297,18 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
                       type="number"
                       min={0}
                       inputMode="numeric"
-                      value={item.precio_unitario}
-                      onChange={(event) =>
-                        patchItem(item.id, { precio_unitario: Number(event.target.value) || 0 })
-                      }
+                      value={item.precio_unitario === 0 ? "" : item.precio_unitario}
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        if (val === "") {
+                          patchItem(item.id, { precio_unitario: 0 });
+                        } else {
+                          const num = Number(val);
+                          if (!isNaN(num) && num >= 0) {
+                            patchItem(item.id, { precio_unitario: num });
+                          }
+                        }
+                      }}
                     />
                   </div>
                   <div className="w-28 space-y-1">

@@ -21,6 +21,7 @@ export interface Business {
   pie_pagina: string;
   iva_percent: number;
   next_quote_number: number;
+  color_factura: string | null;
   created_at?: string;
   updated_at?: string;
   /** Local-only: data URL of the logo so the PDF works offline. Never sent to the server. */

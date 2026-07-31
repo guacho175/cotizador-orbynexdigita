@@ -22,6 +22,7 @@ export type Database = {
           banco_rut: string
           banco_tipo_cuenta: string
           banco_titular: string
+          color_factura: string | null
           condiciones: string
           created_at: string
           direccion: string
@@ -46,6 +47,7 @@ export type Database = {
           banco_rut?: string
           banco_tipo_cuenta?: string
           banco_titular?: string
+          color_factura?: string | null
           condiciones?: string
           created_at?: string
           direccion?: string
@@ -70,6 +72,7 @@ export type Database = {
           banco_rut?: string
           banco_tipo_cuenta?: string
           banco_titular?: string
+          color_factura?: string | null
           condiciones?: string
           created_at?: string
           direccion?: string
