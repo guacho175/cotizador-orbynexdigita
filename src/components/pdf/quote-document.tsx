@@ -81,6 +81,15 @@ const styles = StyleSheet.create({
   cell: { fontSize: 9 },
   cellMuted: { fontSize: 8, color: MUTED, marginTop: 2 },
 
+  itemsBox: { flexGrow: 1 },
+  itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+  itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 4 },
+  itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
+  bulletRow: { flexDirection: "row", marginBottom: 2, paddingRight: 4 },
+  bulletDot: { width: 7, height: 7, backgroundColor: AMBER, marginRight: 6, marginTop: 1.5 },
+  bulletText: { fontSize: 9, flex: 1, lineHeight: 1.3 },
+
   totalsWrap: { flexDirection: "row", justifyContent: "flex-end", marginTop: 14 },
   totals: { width: 230 },
   totalRow: {
@@ -128,6 +137,77 @@ const styles = StyleSheet.create({
   },
   footerText: { fontSize: 7.5, color: MUTED },
 });
+
+interface ParsedItemDescription {
+  title?: string;
+  subtitle?: string;
+  paragraph?: string;
+  includesHeader?: string;
+  bullets?: string[];
+  plain?: string;
+}
+
+/**
+ * Item descriptions are plain text. The AI "Mejorar redacción" mode writes them in a
+ * title / spec-subtitle / paragraph / "incluye:" / bullet-lines convention; this parses
+ * that convention when present and falls back to plain text otherwise.
+ */
+function parseItemDescription(raw: string): ParsedItemDescription {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  const bulletStart = lines.findIndex((line) => /^[-•]\s+/.test(line));
+  if (lines.length < 2 || bulletStart <= 0) return { plain: raw };
+
+  const hasHeader = /incluye:?$/i.test(lines[bulletStart - 1]);
+  const bodyEnd = hasHeader ? bulletStart - 1 : bulletStart;
+  const bodyLines = lines.slice(0, bodyEnd);
+  if (bodyLines.length === 0) return { plain: raw };
+
+  const bullets = lines.slice(bulletStart).map((line) => line.replace(/^[-•]\s+/, ""));
+  const [title, ...rest] = bodyLines;
+  let subtitle: string | undefined;
+  let paragraphLines = rest;
+  if (rest[0]?.includes("|") && rest[0].length < 90) {
+    subtitle = rest[0];
+    paragraphLines = rest.slice(1);
+  }
+
+  return {
+    title,
+    subtitle,
+    paragraph: paragraphLines.join(" ").trim() || undefined,
+    includesHeader: hasHeader ? lines[bulletStart - 1] : "El servicio incluye:",
+    bullets,
+  };
+}
+
+function ItemDescription({ text }: { text: string }) {
+  const parsed = parseItemDescription(text || "");
+  if (parsed.plain !== undefined) {
+    return <Text style={styles.cell}>{parsed.plain || "—"}</Text>;
+  }
+  return (
+    <View>
+      {parsed.title ? <Text style={styles.itemTitle}>{parsed.title}</Text> : null}
+      {parsed.subtitle ? <Text style={styles.itemSubtitle}>{parsed.subtitle}</Text> : null}
+      {parsed.paragraph ? <Text style={styles.itemParagraph}>{parsed.paragraph}</Text> : null}
+      {parsed.bullets?.length ? (
+        <View>
+          <Text style={styles.itemIncludesHeader}>{parsed.includesHeader}</Text>
+          {parsed.bullets.map((bullet, index) => (
+            <View key={index} style={styles.bulletRow}>
+              <View style={styles.bulletDot} />
+              <Text style={styles.bulletText}>{bullet}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export interface QuoteDocumentProps {
   quote: Quote;
