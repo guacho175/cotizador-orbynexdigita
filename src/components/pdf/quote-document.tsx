@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   itemsBox: { flexGrow: 1 },
   itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 2, textTransform: "uppercase" },
   itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 6 },
-  itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 6 },
+  itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 6, textAlign: "justify" },
   itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
   bulletRow: { flexDirection: "row", marginBottom: 3, paddingRight: 4, alignItems: "flex-start" },
   bulletCheck: { 
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginTop: 1,
   },
-  bulletText: { fontSize: 9, flex: 1, lineHeight: 1.3 },
+  bulletText: { fontSize: 9, flex: 1, lineHeight: 1.3, textAlign: "justify" },
 
   bottomRow: {
     flexDirection: "row",
@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: MUTED,
     lineHeight: 1.4,
+    textAlign: "justify",
   },
 
   totalsCol: { width: 180 },
@@ -280,6 +281,17 @@ function ItemDescription({ text }: { text: string }) {
   );
 }
 
+function getContrastColor(hexcolor: string) {
+  const hex = hexcolor.replace("#", "");
+  if (hex.length !== 6 && hex.length !== 3) return "#ffffff";
+  const fullHex = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+  const r = parseInt(fullHex.substring(0, 2), 16);
+  const g = parseInt(fullHex.substring(2, 4), 16);
+  const b = parseInt(fullHex.substring(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? "#14202e" : "#ffffff";
+}
+
 export interface QuoteDocumentProps {
   quote: Quote;
   items: QuoteItem[];
@@ -291,6 +303,7 @@ export interface QuoteDocumentProps {
 export function QuoteDocument({ quote, items, business, client, logoDataUrl }: QuoteDocumentProps) {
   const validUntil = addDays(quote.fecha, quote.validez_dias || 0);
   const themeColor = business.color_factura || NAVY;
+  const contrastColor = getContrastColor(themeColor);
 
   return (
     <Document
@@ -302,16 +315,16 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
           <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
             {logoDataUrl ? <Image src={logoDataUrl} style={styles.logo} /> : null}
             <View style={{ flex: 1 }}>
-              <Text style={styles.brandName}>{business.nombre || "Tu empresa"}</Text>
-              {business.giro ? <Text style={styles.brandLine}>{business.giro}</Text> : null}
-              {business.rut ? <Text style={styles.brandLine}>RUT {business.rut}</Text> : null}
+              <Text style={[styles.brandName, { color: contrastColor }]}>{business.nombre || "Tu empresa"}</Text>
+              {business.giro ? <Text style={[styles.brandLine, { color: contrastColor, opacity: 0.8 }]}>{business.giro}</Text> : null}
+              {business.rut ? <Text style={[styles.brandLine, { color: contrastColor, opacity: 0.8 }]}>RUT {business.rut}</Text> : null}
             </View>
           </View>
           <View style={styles.quoteBadge}>
-            <Text style={styles.quoteLabel}>COTIZACIÓN N°</Text>
-            <Text style={styles.quoteNumber}>{quoteNumber(quote.numero)}</Text>
-            <Text style={styles.quoteDate}>Fecha: {formatDate(quote.fecha)}</Text>
-            <Text style={styles.quoteDate}>Válida hasta: {formatDate(validUntil)}</Text>
+            <Text style={[styles.quoteLabel, { color: contrastColor, opacity: 0.9 }]}>COTIZACIÓN N°</Text>
+            <Text style={[styles.quoteNumber, { color: contrastColor }]}>{quoteNumber(quote.numero)}</Text>
+            <Text style={[styles.quoteDate, { color: contrastColor, opacity: 0.8 }]}>Fecha: {formatDate(quote.fecha)}</Text>
+            <Text style={[styles.quoteDate, { color: contrastColor, opacity: 0.8 }]}>Válida hasta: {formatDate(validUntil)}</Text>
           </View>
         </View>
 
@@ -379,8 +392,8 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
               <Text style={styles.observacionText}>{money(quote.iva)}</Text>
             </View>
             <View style={[styles.grandTotal, { backgroundColor: themeColor }]}>
-              <Text style={styles.grandLabel}>TOTAL</Text>
-              <Text style={styles.grandValue}>{money(quote.total)}</Text>
+              <Text style={[styles.grandLabel, { color: contrastColor }]}>TOTAL</Text>
+              <Text style={[styles.grandValue, { color: contrastColor }]}>{money(quote.total)}</Text>
             </View>
           </View>
         </View>

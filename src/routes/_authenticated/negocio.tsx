@@ -66,6 +66,17 @@ function BusinessPage() {
     if (stored && !draft) setDraft(stored);
   }, [stored, draft]);
 
+  useEffect(() => {
+    if (!draft || !stored) return;
+    const isDirty = JSON.stringify(draft) !== JSON.stringify(stored);
+    if (!isDirty) return;
+
+    const timer = setTimeout(() => {
+      void submit(draft, true);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [draft, stored]);
+
   if (stored === undefined) return <p className="text-sm text-muted-foreground">Cargando…</p>;
 
   const current: Business = draft ?? {
@@ -121,17 +132,24 @@ function BusinessPage() {
     toast.success("Logo actualizado");
   }
 
-  async function submit() {
+  async function submit(payload: Business = current, isAutoSave = false) {
     const parsed = businessSchema.safeParse({
-      nombre: current.nombre,
-      rut: current.rut,
-      email: current.email,
-      iva_percent: Number(current.iva_percent),
+      nombre: payload.nombre,
+      rut: payload.rut,
+      email: payload.email,
+      iva_percent: Number(payload.iva_percent),
     });
-    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    await saveBusiness({ ...current, ...parsed.data });
-    await db.businesses.put({ ...current, ...parsed.data });
-    toast.success("Datos guardados");
+    if (!parsed.success) {
+      if (!isAutoSave) toast.error(parsed.error.issues[0].message);
+      return;
+    }
+    await saveBusiness({ ...payload, ...parsed.data });
+    await db.businesses.put({ ...payload, ...parsed.data });
+    if (isAutoSave) {
+      toast.success("Autoguardado", { id: "autosave-biz", duration: 1500 });
+    } else {
+      toast.success("Datos guardados");
+    }
   }
 
   return (
@@ -195,7 +213,18 @@ function BusinessPage() {
                   value={current.color_factura || "#0b2545"}
                   onChange={(event) => patch({ color_factura: event.target.value })}
                 />
-                <span className="text-sm text-muted-foreground uppercase">{current.color_factura || "#0b2545"}</span>
+                <Input
+                  type="text"
+                  className="w-28 font-mono uppercase"
+                  maxLength={7}
+                  placeholder="#0b2545"
+                  value={current.color_factura || ""}
+                  onChange={(event) => {
+                    let val = event.target.value;
+                    if (val && !val.startsWith("#")) val = "#" + val;
+                    patch({ color_factura: val });
+                  }}
+                />
               </div>
             </div>
             <div className="space-y-1.5">

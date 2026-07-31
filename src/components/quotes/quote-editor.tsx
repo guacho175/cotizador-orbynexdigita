@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { GripVertical, Plus, Save, Trash2, FileDown, Share2, Eye, Loader2 } from "lucide-react";
@@ -49,18 +49,31 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     [items, quote.iva_percent],
   );
 
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      void persist(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [quote, items]);
+
   const client = clients.find((candidate) => candidate.id === quote.client_id) ?? null;
 
   function patchItem(id: string, patch: Partial<QuoteItem>) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  async function persist(): Promise<Quote | null> {
+  async function persist(isAutoSave = false): Promise<Quote | null> {
     if (!items.some((item) => item.descripcion.trim())) {
-      toast.error("Agrega al menos una línea con descripción.");
+      if (!isAutoSave) toast.error("Agrega al menos una línea con descripción.");
       return null;
     }
-    setSaving(true);
+    if (!isAutoSave) setSaving(true);
     try {
       const snapshotBusiness = { ...business, logo_data: undefined } as unknown as Record<string, unknown>;
       const saved = await saveQuote(
@@ -72,13 +85,17 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
         items,
       );
       setQuote(saved);
-      toast.success("Cotización guardada");
+      if (isAutoSave) {
+        toast.success("Autoguardado", { id: "autosave-quote", duration: 1500 });
+      } else {
+        toast.success("Cotización guardada");
+      }
       return saved;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo guardar");
+      if (!isAutoSave) toast.error(error instanceof Error ? error.message : "No se pudo guardar");
       return null;
     } finally {
-      setSaving(false);
+      if (!isAutoSave) setSaving(false);
     }
   }
 
