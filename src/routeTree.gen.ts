@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedCotizacionesIndexRouteImport } from './routes/_authenticated/cotizaciones/index'
 import { Route as AuthenticatedCotizacionesIdRouteImport } from './routes/_authenticated/cotizaciones/$id'
@@ -36,6 +37,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   id: '/panel',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/clientes': typeof AuthenticatedClientesRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/clientes': typeof AuthenticatedClientesRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/_authenticated/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/clientes'
     | '/panel'
     | '/cotizaciones/$id'
     | '/cotizaciones/nueva'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/clientes'
     | '/panel'
     | '/cotizaciones/$id'
     | '/cotizaciones/nueva'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/_authenticated/clientes'
     | '/_authenticated/panel'
     | '/_authenticated/cotizaciones/$id'
     | '/_authenticated/cotizaciones/nueva'
@@ -158,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/clientes': {
+      id: '/_authenticated/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AuthenticatedClientesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/panel': {
       id: '/_authenticated/panel'
       path: '/panel'
@@ -190,6 +209,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedCotizacionesIdRoute: typeof AuthenticatedCotizacionesIdRoute
   AuthenticatedCotizacionesNuevaRoute: typeof AuthenticatedCotizacionesNuevaRoute
@@ -197,6 +217,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedCotizacionesIdRoute: AuthenticatedCotizacionesIdRoute,
   AuthenticatedCotizacionesNuevaRoute: AuthenticatedCotizacionesNuevaRoute,
