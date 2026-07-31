@@ -14,13 +14,262 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          banco_email: string
+          banco_nombre: string
+          banco_numero_cuenta: string
+          banco_rut: string
+          banco_tipo_cuenta: string
+          banco_titular: string
+          condiciones: string
+          created_at: string
+          direccion: string
+          email: string
+          giro: string
+          id: string
+          iva_percent: number
+          logo_path: string | null
+          next_quote_number: number
+          nombre: string
+          pie_pagina: string
+          rut: string
+          sitio_web: string
+          telefono: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          banco_email?: string
+          banco_nombre?: string
+          banco_numero_cuenta?: string
+          banco_rut?: string
+          banco_tipo_cuenta?: string
+          banco_titular?: string
+          condiciones?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          giro?: string
+          id?: string
+          iva_percent?: number
+          logo_path?: string | null
+          next_quote_number?: number
+          nombre?: string
+          pie_pagina?: string
+          rut?: string
+          sitio_web?: string
+          telefono?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          banco_email?: string
+          banco_nombre?: string
+          banco_numero_cuenta?: string
+          banco_rut?: string
+          banco_tipo_cuenta?: string
+          banco_titular?: string
+          condiciones?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          giro?: string
+          id?: string
+          iva_percent?: number
+          logo_path?: string | null
+          next_quote_number?: number
+          nombre?: string
+          pie_pagina?: string
+          rut?: string
+          sitio_web?: string
+          telefono?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          contacto: string
+          created_at: string
+          direccion: string
+          email: string
+          id: string
+          nombre: string
+          notas: string
+          rut: string
+          telefono: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contacto?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          id?: string
+          nombre: string
+          notas?: string
+          rut?: string
+          telefono?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contacto?: string
+          created_at?: string
+          direccion?: string
+          email?: string
+          id?: string
+          nombre?: string
+          notas?: string
+          rut?: string
+          telefono?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quote_items: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descripcion: string
+          id: string
+          orden: number
+          precio_unitario: number
+          quote_id: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cantidad?: number
+          created_at?: string
+          descripcion?: string
+          id?: string
+          orden?: number
+          precio_unitario?: number
+          quote_id: string
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descripcion?: string
+          id?: string
+          orden?: number
+          precio_unitario?: number
+          quote_id?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          atencion: string
+          client_id: string | null
+          created_at: string
+          estado: string
+          fecha: string
+          id: string
+          iva: number
+          iva_percent: number
+          numero: number | null
+          snapshot_cliente: Json | null
+          snapshot_negocio: Json | null
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+          validez_dias: number
+        }
+        Insert: {
+          atencion?: string
+          client_id?: string | null
+          created_at?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          iva?: number
+          iva_percent?: number
+          numero?: number | null
+          snapshot_cliente?: Json | null
+          snapshot_negocio?: Json | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+          validez_dias?: number
+        }
+        Update: {
+          atencion?: string
+          client_id?: string | null
+          created_at?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          iva?: number
+          iva_percent?: number
+          numero?: number | null
+          snapshot_cliente?: Json | null
+          snapshot_negocio?: Json | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+          validez_dias?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      assign_quote_number: { Args: { _quote_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
