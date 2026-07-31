@@ -50,10 +50,18 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
   );
 
   const isFirstRender = useRef(true);
+  const lastPersisted = useRef<{ quote: Quote; items: QuoteItem[] } | null>(null);
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
+      return;
+    }
+    if (
+      lastPersisted.current &&
+      lastPersisted.current.quote === quote &&
+      lastPersisted.current.items === items
+    ) {
       return;
     }
     const timer = setTimeout(() => {
@@ -84,6 +92,7 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
         },
         items,
       );
+      lastPersisted.current = { quote: saved, items };
       setQuote(saved);
       if (isAutoSave) {
         toast.success("Autoguardado", { id: "autosave-quote", duration: 1500 });

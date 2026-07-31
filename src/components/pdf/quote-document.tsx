@@ -101,10 +101,10 @@ const styles = StyleSheet.create({
   },
 
   itemsBox: { flexGrow: 1 },
-  itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 2, textTransform: "uppercase" },
-  itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 2, textTransform: "uppercase", textAlign: "justify" },
+  itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 6, textAlign: "justify" },
   itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 6, textAlign: "justify" },
-  itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+  itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4, textAlign: "justify" },
   bulletRow: { flexDirection: "row", marginBottom: 3, paddingRight: 4, alignItems: "flex-start" },
   bulletCheck: { 
     width: 12, 
@@ -258,7 +258,7 @@ function parseItemDescription(raw: string): ParsedItemDescription {
 function ItemDescription({ text }: { text: string }) {
   const parsed = parseItemDescription(text || "");
   if (parsed.plain !== undefined) {
-    return <Text style={styles.observacionText}>{parsed.plain || "—"}</Text>;
+    return <Text style={styles.itemParagraph}>{parsed.plain || "—"}</Text>;
   }
   return (
     <View>
