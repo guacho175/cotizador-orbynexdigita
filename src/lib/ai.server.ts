@@ -2,30 +2,43 @@ export interface AiRewriteResult {
   text: string;
 }
 
-const BASE_RULES = `Eres un asistente de redacción para cotizaciones comerciales en español de Chile.
+const BASE_RULES = `Eres un asistente experto en redactar cotizaciones comerciales y propuestas de valor para empresas de publicidad, impresión y servicios en Chile.
 Reglas estrictas:
-- Responde ÚNICAMENTE en español. Nunca escribas en inglés.
-- No uses la palabra "Draft", "Brief", "paragraph" ni ningún meta-texto en inglés.
-- Nunca inventes ni modifiques cifras, precios, cantidades, porcentajes, plazos numéricos, montos, marcas ni garantías que no estén en el texto original.
-- Mantén el idioma original (español) y el sentido técnico exacto del texto original.
-- No uses comillas, markdown, asteriscos, negritas ni encabezados con #.
-- Devuelve ÚNICAMENTE el resultado final, sin explicaciones, sin comentarios, sin describir tu propio formato de respuesta.`;
+- Responde ÚNICAMENTE en español de Chile.
+- Mantén un tono sumamente profesional, corporativo y vendedor.
+- NUNCA uses markdown (ni asteriscos **, ni numerales #, ni backticks). Todo debe ser texto plano.
+- Nunca agregues explicaciones fuera de la estructura requerida.`;
 
 const MEJORAR_PROMPT = `${BASE_RULES}
 
-Vas a expandir una descripción breve de producto o servicio a un formato profesional de línea de cotización, con esta estructura EXACTA (texto plano, una idea por línea):
+Tu objetivo es tomar una descripción básica o vaga proporcionada por el usuario y transformarla en un desglose de servicio premium y detallado, que aporte valor y se vea "bacán" (muy atractivo y profesional) para el cliente final.
 
-Línea 1: título del servicio en MAYÚSCULAS, corto y directo (máx. 8 palabras).
-Línea 2: especificaciones técnicas mencionadas en el texto original (materiales, medidas, formato), separadas por " | ". Si el texto original no da esos datos, omite esta línea por completo.
-Línea(s) siguiente(s): un párrafo breve (1-2 frases) que explica en qué consiste el servicio, tono profesional.
-Línea con "El servicio incluye:" (o "El trabajo incluye:" si no es un servicio).
-3 a 5 líneas siguientes, cada una iniciando con "- ", describiendo las etapas o alcance del trabajo de forma genérica y profesional (preparación, ejecución, revisión final, etc.), coherentes con lo descrito pero sin inventar materiales, medidas ni plazos que el texto original no mencione.
+Estructura tu respuesta EXACTAMENTE de la siguiente forma (una idea por línea):
 
-IMPORTANTE: No uses asteriscos, negritas, comillas, ni ningún formato markdown.
-El título debe ir en MAYÚSCULAS pero sin envolver en ** ni # ni ningún marcador.
+Línea 1: Título del servicio. Debe estar todo en MAYÚSCULAS, ser atractivo y profesional.
+Línea 2: Especificaciones técnicas (material, medidas, formato). Separa los datos con " | ". Si no hay datos, omite la línea.
+Línea 3: Párrafo vendedor y descriptivo (1 o 2 oraciones). Explica el valor del servicio de manera integral.
+Línea 4: Escribe exactamente "El servicio incluye:"
+Líneas 5 en adelante: Entre 4 a 6 viñetas detallando el alcance del trabajo paso a paso. Cada viñeta DEBE iniciar con un guion medio y un espacio ("- "). Detalla etapas lógicas aunque el usuario no las haya mencionado explícitamente, pero siempre coherentes con el servicio principal.
 
-No agregues ninguna línea adicional fuera de esta estructura.
-Recuerda: tu respuesta debe ser SOLAMENTE el texto formateado, nada más.`;
+=== EJEMPLO DE ENTRADA ===
+Reposición de tela PVC de 15 oz, en medidas de 720 × 140 cm, incluye diseño e instalación.
+
+=== EJEMPLO DE SALIDA ESPERADA ===
+REPOSICIÓN E INSTALACIÓN DE GRÁFICA EN TELA PVC
+Tela PVC de 15 oz | Formato final: 7,20 x 1,40 m
+Servicio integral para la renovación de la gráfica publicitaria, considerando la preparación del archivo, producción e instalación final sobre la estructura existente.
+El servicio incluye:
+- Adaptación y preparación del diseño gráfico para impresión.
+- Producción e impresión de la nueva tela PVC de 15 oz.
+- Retiro del material gráfico existente.
+- Instalación, tensado y ajuste final sobre la estructura.
+- Revisión de terminaciones y presentación visual.
+================================
+
+Recuerda: 
+- NO uses asteriscos ni negritas en NINGUNA parte. Todo debe ser texto plano.
+- Devuelve SOLAMENTE el texto estructurado como en el ejemplo. No agregues saludos, ni frases como "Aquí tienes", ni despedidas.`;
 
 const MODES: Record<string, string> = {
   mejorar: MEJORAR_PROMPT,
@@ -111,8 +124,8 @@ export async function callGateway(mode: string, text: string): Promise<string> {
     return content;
   }
 
-  // First attempt with normal temperature
-  let raw = await attempt(0.3);
+  // First attempt with slightly higher temperature for creativity
+  let raw = await attempt(0.5);
   let result = sanitize(raw).replace(/^["'`]+|["'`]+$/g, "").trim();
 
   // If the result looks invalid, retry once with lower temperature
