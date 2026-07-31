@@ -16,6 +16,11 @@ export function pdfFileName(props: QuoteDocumentProps): string {
   return `cotizacion-${quoteNumber(props.quote.numero)}-${cliente}.pdf`;
 }
 
+export async function previewQuotePdfUrl(props: QuoteDocumentProps): Promise<string> {
+  const blob = await buildQuotePdfBlob(props);
+  return URL.createObjectURL(blob);
+}
+
 export async function downloadQuotePdf(props: QuoteDocumentProps) {
   const blob = await buildQuotePdfBlob(props);
   const url = URL.createObjectURL(blob);

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { GripVertical, Plus, Save, Trash2, FileDown, Share2, Loader2 } from "lucide-react";
+import { GripVertical, Plus, Save, Trash2, FileDown, Share2, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { db } from "@/lib/db";
@@ -10,6 +10,7 @@ import { emptyItem, saveQuote, uuid } from "@/lib/repo";
 import type { Business, Client, Estado, Quote, QuoteItem } from "@/lib/types";
 import { ESTADOS } from "@/lib/types";
 import { AiAssist } from "./ai-assist";
+import { PdfPreviewDialog } from "./pdf-preview-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +40,9 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     initialItems.length ? initialItems : [emptyItem(initialQuote.id, userId, 0)],
   );
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState<"pdf" | "share" | null>(null);
+  const [exporting, setExporting] = useState<"pdf" | "share" | "preview" | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const totals = useMemo(
     () => computeTotals(items, quote.iva_percent),
@@ -79,24 +82,52 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     }
   }
 
+  function buildPdfProps(saved: Quote) {
+    return {
+      quote: { ...saved, ...totals },
+      items,
+      business,
+      client,
+      logoDataUrl: business.logo_data ?? null,
+    };
+  }
+
   async function exportPdf(mode: "pdf" | "share") {
     const saved = (await persist()) ?? quote;
     setExporting(mode);
     try {
       const { downloadQuotePdf, shareQuotePdf } = await import("@/lib/pdf");
-      const props = {
-        quote: { ...saved, ...totals },
-        items,
-        business,
-        client,
-        logoDataUrl: business.logo_data ?? null,
-      };
+      const props = buildPdfProps(saved);
       if (mode === "share") await shareQuotePdf(props);
       else await downloadQuotePdf(props);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo generar el PDF");
     } finally {
       setExporting(null);
+    }
+  }
+
+  async function openPreview() {
+    const saved = (await persist()) ?? quote;
+    setExporting("preview");
+    setShowPreview(true);
+    try {
+      const { previewQuotePdfUrl } = await import("@/lib/pdf");
+      const url = await previewQuotePdfUrl(buildPdfProps(saved));
+      setPreviewUrl(url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo generar la vista previa");
+      setShowPreview(false);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  function closePreview() {
+    setShowPreview(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   }
 
@@ -304,6 +335,10 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
           Guardar
         </Button>
+        <Button variant="outline" onClick={() => void openPreview()} disabled={exporting !== null}>
+          {exporting === "preview" ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
+          Vista previa
+        </Button>
         <Button variant="outline" onClick={() => void exportPdf("pdf")} disabled={exporting !== null}>
           {exporting === "pdf" ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
           Descargar PDF
@@ -313,6 +348,17 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           Compartir
         </Button>
       </div>
+
+      <PdfPreviewDialog
+        open={showPreview}
+        onOpenChange={(open) => { if (!open) closePreview(); }}
+        pdfUrl={previewUrl}
+        loading={!previewUrl && showPreview}
+        onDownload={() => void exportPdf("pdf")}
+        onShare={() => void exportPdf("share")}
+        downloading={exporting === "pdf"}
+        sharing={exporting === "share"}
+      />
     </div>
   );
 }
