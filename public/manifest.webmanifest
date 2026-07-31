@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Cotiza — Cotizaciones Inteligentes",
+  "short_name": "Cotiza",
+  "description": "Crea, administra y comparte cotizaciones profesionales desde cualquier dispositivo, incluso sin conexión.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "theme_color": "#0b2545",
+  "background_color": "#0b2545",
+  "lang": "es-CL",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nueva cotización", "short_name": "Nueva", "url": "/cotizaciones/nueva" },
+    { "name": "Clientes", "short_name": "Clientes", "url": "/clientes" }
+  ]
+}
