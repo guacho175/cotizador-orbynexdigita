@@ -151,8 +151,21 @@ export async function flushOutbox(): Promise<{ pushed: number; failed: number }>
         pushed += 1;
       } catch (error) {
         console.error("[sync] push failed", next.entity, error);
+        
+        // Identify if it is an active rejection from the server (PostgrestError)
+        // vs a network error (like TypeError: Failed to fetch).
+        // If it's a server error, the request reached the DB but was rejected (e.g. constraints).
+        const isPostgrestError = typeof error === 'object' && error !== null && 'code' in error;
+        
+        if (isPostgrestError) {
+          console.warn(`[sync] Unrecoverable server error for ${next.entity}:${next.row_id}. Removing from queue to prevent head-of-line blocking.`);
+          await db.outbox.delete(next.seq!);
+          failed += 1;
+          continue; // Move to the next item instead of blocking the entire queue
+        }
+
         failed += 1;
-        break; // keep order; retry on the next sync tick
+        break; // Network error or unknown retriable error, break the loop
       }
     }
     if (pushed > 0) await setMeta("last_push_at", new Date().toISOString());

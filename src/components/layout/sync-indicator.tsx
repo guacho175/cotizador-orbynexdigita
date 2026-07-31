@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function SyncIndicator({ className }: { className?: string }) {
-  const { online, pending, conflicts, last, syncNow } = useSyncStatus();
+  const { online, pending, conflicts, last, syncNow, dismissConflicts } = useSyncStatus();
 
   const label = !online
     ? "Sin conexión"
@@ -29,10 +29,14 @@ export function SyncIndicator({ className }: { className?: string }) {
         {label}
       </span>
       {conflicts > 0 ? (
-        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-1 text-xs text-destructive">
+        <button 
+          onClick={() => void dismissConflicts()}
+          className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-1 text-xs text-destructive hover:bg-destructive/25 transition-colors cursor-pointer"
+          title="Descartar conflictos"
+        >
           <AlertTriangle className="size-3.5" />
           {conflicts} conflicto{conflicts === 1 ? "" : "s"}
-        </span>
+        </button>
       ) : null}
       {online && pending > 0 ? (
         <Button size="sm" variant="ghost" onClick={() => void syncNow()} className="h-7 px-2">

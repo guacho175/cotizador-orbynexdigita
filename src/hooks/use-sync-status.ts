@@ -37,5 +37,8 @@ export function useSyncStatus() {
       await flushOutbox();
       setLast(await lastSyncAt());
     },
+    dismissConflicts: async () => {
+      await db.conflicts.where("seen").equals(0).modify({ seen: 1 });
+    },
   };
 }
