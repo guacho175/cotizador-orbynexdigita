@@ -48,5 +48,5 @@ export function computeTotals(
 }
 
 export function quoteNumber(numero: number | null): string {
-  return numero == null ? "—" : String(numero).padStart(4, "0");
+  return numero == null ? "—" : String(numero).padStart(5, "0");
 }

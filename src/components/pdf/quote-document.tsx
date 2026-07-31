@@ -270,18 +270,20 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
           <Text style={[styles.th, styles.colTotal]}>TOTAL</Text>
         </View>
 
-        {items.map((item) => (
-          <View key={item.id} style={styles.row} wrap={false}>
-            <View style={styles.colDesc}>
-              <Text style={styles.cell}>{item.descripcion || "—"}</Text>
+        <View style={styles.itemsBox}>
+          {items.map((item) => (
+            <View key={item.id} style={styles.row} wrap={false}>
+              <View style={styles.colDesc}>
+                <ItemDescription text={item.descripcion} />
+              </View>
+              <Text style={[styles.cell, styles.colQty]}>{item.cantidad}</Text>
+              <Text style={[styles.cell, styles.colPrice]}>{money(item.precio_unitario)}</Text>
+              <Text style={[styles.cell, styles.colTotal]}>
+                {money(lineTotal(item.cantidad, item.precio_unitario))}
+              </Text>
             </View>
-            <Text style={[styles.cell, styles.colQty]}>{item.cantidad}</Text>
-            <Text style={[styles.cell, styles.colPrice]}>{money(item.precio_unitario)}</Text>
-            <Text style={[styles.cell, styles.colTotal]}>
-              {money(lineTotal(item.cantidad, item.precio_unitario))}
-            </Text>
-          </View>
-        ))}
+          ))}
+        </View>
 
         <View style={styles.totalsWrap} wrap={false}>
           <View style={styles.totals}>
