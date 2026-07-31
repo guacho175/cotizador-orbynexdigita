@@ -165,17 +165,16 @@ const styles = StyleSheet.create({
 
   bankBar: {
     flexDirection: "row",
-    backgroundColor: AMBER,
-    borderRadius: 8,
-    padding: 12,
     marginTop: 18,
-    gap: 12,
+    gap: 10,
   },
   bankCol: {
     flex: 1,
-    backgroundColor: "#ffffff",
-    padding: 8,
-    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#fafbfc",
   },
   bankTitle: {
     fontSize: 7.5,
