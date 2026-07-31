@@ -58,40 +58,92 @@ const styles = StyleSheet.create({
   strong: { fontFamily: "Helvetica-Bold", fontSize: 10, marginBottom: 2 },
   small: { fontSize: 8.5, color: MUTED, marginBottom: 1.5 },
 
-  tableHead: {
+  sectionHeader: {
     flexDirection: "row",
-    backgroundColor: NAVY,
-    borderRadius: 6,
+    justifyContent: "space-between",
+    backgroundColor: "transparent",
+    borderBottomWidth: 1,
+    borderBottomColor: AMBER,
     paddingVertical: 7,
     paddingHorizontal: 8,
     marginTop: 18,
+    marginBottom: 10,
   },
-  th: { color: "#ffffff", fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 0.5 },
-  row: {
-    flexDirection: "row",
-    paddingVertical: 7,
+  sectionTitle: { color: AMBER, fontSize: 8, fontFamily: "Helvetica-Bold", letterSpacing: 0.5 },
+
+  itemBlock: {
     paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: LINE,
+    paddingBottom: 16,
   },
-  colDesc: { flex: 1, paddingRight: 8 },
-  colQty: { width: 46, textAlign: "right" },
-  colPrice: { width: 78, textAlign: "right" },
-  colTotal: { width: 84, textAlign: "right" },
-  cell: { fontSize: 9 },
-  cellMuted: { fontSize: 8, color: MUTED, marginTop: 2 },
+  itemTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  priceCol: {
+    width: 90,
+    alignItems: "flex-end",
+  },
+  priceValue: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 11,
+  },
+  priceCurrency: {
+    fontSize: 7,
+    color: MUTED,
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  priceQty: {
+    fontSize: 7.5,
+    color: MUTED,
+    marginTop: 4,
+  },
 
   itemsBox: { flexGrow: 1 },
-  itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", marginBottom: 2 },
-  itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 4 },
-  itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 4 },
-  itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 3 },
-  bulletRow: { flexDirection: "row", marginBottom: 2, paddingRight: 4 },
-  bulletDot: { width: 7, height: 7, backgroundColor: AMBER, marginRight: 6, marginTop: 1.5 },
+  itemTitle: { fontSize: 10, fontFamily: "Helvetica-Bold", color: NAVY, marginBottom: 2, textTransform: "uppercase" },
+  itemSubtitle: { fontSize: 8.5, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  itemParagraph: { fontSize: 9, lineHeight: 1.4, marginBottom: 6 },
+  itemIncludesHeader: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+  bulletRow: { flexDirection: "row", marginBottom: 3, paddingRight: 4, alignItems: "flex-start" },
+  bulletCheck: { 
+    width: 12, 
+    height: 12, 
+    backgroundColor: AMBER, 
+    color: "#ffffff", 
+    fontSize: 8,
+    textAlign: "center",
+    borderRadius: 2,
+    marginRight: 6,
+    marginTop: 1,
+  },
   bulletText: { fontSize: 9, flex: 1, lineHeight: 1.3 },
 
-  totalsWrap: { flexDirection: "row", justifyContent: "flex-end", marginTop: 14 },
-  totals: { width: 230 },
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: LINE,
+    paddingTop: 10,
+  },
+  observacionCol: {
+    flex: 1,
+    paddingRight: 20,
+  },
+  observacionLabel: {
+    fontSize: 8,
+    color: AMBER,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 4,
+  },
+  observacionText: {
+    fontSize: 8,
+    color: MUTED,
+    lineHeight: 1.4,
+  },
+
+  totalsCol: { width: 180 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -110,17 +162,36 @@ const styles = StyleSheet.create({
   grandLabel: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 10 },
   grandValue: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 12 },
 
-  bank: {
-    marginTop: 18,
-    borderWidth: 1,
-    borderColor: LINE,
-    borderLeftWidth: 4,
-    borderLeftColor: AMBER,
+  bankBar: {
+    flexDirection: "row",
+    backgroundColor: AMBER,
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
+    marginTop: 18,
+    gap: 12,
   },
-  bankGrid: { flexDirection: "row", flexWrap: "wrap" },
-  bankItem: { width: "50%", marginBottom: 3 },
+  bankCol: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    padding: 8,
+    borderRadius: 4,
+  },
+  bankTitle: {
+    fontSize: 7.5,
+    color: AMBER,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  bankText: {
+    fontSize: 7.5,
+    color: MUTED,
+    marginBottom: 2,
+  },
+  bankBold: {
+    fontFamily: "Helvetica-Bold",
+    color: NAVY,
+  },
 
   terms: { marginTop: 12, fontSize: 8, color: MUTED, lineHeight: 1.4 },
 
@@ -187,7 +258,7 @@ function parseItemDescription(raw: string): ParsedItemDescription {
 function ItemDescription({ text }: { text: string }) {
   const parsed = parseItemDescription(text || "");
   if (parsed.plain !== undefined) {
-    return <Text style={styles.cell}>{parsed.plain || "—"}</Text>;
+    return <Text style={styles.observacionText}>{parsed.plain || "—"}</Text>;
   }
   return (
     <View>
@@ -199,7 +270,7 @@ function ItemDescription({ text }: { text: string }) {
           <Text style={styles.itemIncludesHeader}>{parsed.includesHeader}</Text>
           {parsed.bullets.map((bullet, index) => (
             <View key={index} style={styles.bulletRow}>
-              <View style={styles.bulletDot} />
+              <Text style={styles.bulletCheck}>✓</Text>
               <Text style={styles.bulletText}>{bullet}</Text>
             </View>
           ))}
@@ -263,37 +334,48 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
           </View>
         </View>
 
-        <View style={styles.tableHead} fixed>
-          <Text style={[styles.th, styles.colDesc]}>DESCRIPCIÓN</Text>
-          <Text style={[styles.th, styles.colQty]}>CANT.</Text>
-          <Text style={[styles.th, styles.colPrice]}>P. UNITARIO</Text>
-          <Text style={[styles.th, styles.colTotal]}>TOTAL</Text>
+        <View style={styles.sectionHeader} fixed>
+          <Text style={styles.sectionTitle}>DESCRIPCIÓN DEL SERVICIO</Text>
+          <Text style={styles.sectionTitle}>VALOR UNITARIO</Text>
         </View>
 
         <View style={styles.itemsBox}>
           {items.map((item) => (
-            <View key={item.id} style={styles.row} wrap={false}>
-              <View style={styles.colDesc}>
-                <ItemDescription text={item.descripcion} />
+            <View key={item.id} style={styles.itemBlock} wrap={false}>
+              <View style={styles.itemTopRow}>
+                <View style={{ flex: 1 }}>
+                  <ItemDescription text={item.descripcion} />
+                </View>
+                <View style={styles.priceCol}>
+                  <Text style={styles.priceValue}>{money(item.precio_unitario)}</Text>
+                  <Text style={styles.priceCurrency}>CLP</Text>
+                  {item.cantidad > 1 && (
+                    <Text style={styles.priceQty}>
+                      Cant: {item.cantidad} | {money(lineTotal(item.cantidad, item.precio_unitario))}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <Text style={[styles.cell, styles.colQty]}>{item.cantidad}</Text>
-              <Text style={[styles.cell, styles.colPrice]}>{money(item.precio_unitario)}</Text>
-              <Text style={[styles.cell, styles.colTotal]}>
-                {money(lineTotal(item.cantidad, item.precio_unitario))}
-              </Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.totalsWrap} wrap={false}>
-          <View style={styles.totals}>
+        <View style={styles.bottomRow} wrap={false}>
+          <View style={styles.observacionCol}>
+            <Text style={styles.observacionLabel}>Observación</Text>
+            <Text style={styles.observacionText}>
+              {business.condiciones || "La instalación considera la estructura actualmente disponible y una terminación profesional del material gráfico."}
+            </Text>
+          </View>
+
+          <View style={styles.totalsCol}>
             <View style={styles.totalRow}>
-              <Text style={styles.cell}>Subtotal</Text>
-              <Text style={styles.cell}>{money(quote.subtotal)}</Text>
+              <Text style={styles.observacionText}>Valor neto</Text>
+              <Text style={styles.observacionText}>{money(quote.subtotal)}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.cell}>IVA ({quote.iva_percent}%)</Text>
-              <Text style={styles.cell}>{money(quote.iva)}</Text>
+              <Text style={styles.observacionText}>IVA ({quote.iva_percent}%)</Text>
+              <Text style={styles.observacionText}>{money(quote.iva)}</Text>
             </View>
             <View style={styles.grandTotal}>
               <Text style={styles.grandLabel}>TOTAL</Text>
@@ -303,32 +385,33 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
         </View>
 
         {business.banco_nombre || business.banco_numero_cuenta ? (
-          <View style={styles.bank} wrap={false}>
-            <Text style={styles.panelTitle}>DATOS DE TRANSFERENCIA</Text>
-            <View style={styles.bankGrid}>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>Titular: {business.banco_titular || "—"}</Text>
-              </View>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>RUT: {business.banco_rut || "—"}</Text>
-              </View>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>Banco: {business.banco_nombre || "—"}</Text>
-              </View>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>Tipo de cuenta: {business.banco_tipo_cuenta || "—"}</Text>
-              </View>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>N° de cuenta: {business.banco_numero_cuenta || "—"}</Text>
-              </View>
-              <View style={styles.bankItem}>
-                <Text style={styles.small}>Email: {business.banco_email || "—"}</Text>
-              </View>
+          <View style={styles.bankBar} wrap={false}>
+            <View style={styles.bankCol}>
+              <Text style={styles.bankTitle}>DATOS DE TRANSFERENCIA</Text>
+              <Text style={styles.bankText}>
+                <Text style={styles.bankBold}>{business.banco_titular?.toUpperCase() || "—"}</Text>
+              </Text>
+              <Text style={styles.bankText}>RUT {business.banco_rut || "—"}</Text>
+              <Text style={styles.bankText}>
+                <Text style={styles.bankBold}>{business.banco_nombre?.toUpperCase() || "—"}</Text> - {business.banco_tipo_cuenta?.toUpperCase() || "—"}
+              </Text>
+            </View>
+            <View style={styles.bankCol}>
+              <Text style={styles.bankTitle}>Confirmación de pago</Text>
+              <Text style={styles.bankText}>
+                N° de cuenta: <Text style={styles.bankBold}>{business.banco_numero_cuenta || "—"}</Text>
+              </Text>
+              <Text style={styles.bankText}>
+                Email: {business.banco_email || "—"}
+              </Text>
+              <Text style={[styles.bankText, { marginTop: 4, lineHeight: 1.3 }]}>
+                Una vez recibido el comprobante de transferencia, se dará curso a la solicitud.
+              </Text>
             </View>
           </View>
         ) : null}
 
-        {business.condiciones ? <Text style={styles.terms}>{business.condiciones}</Text> : null}
+
 
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>

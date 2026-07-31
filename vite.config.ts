@@ -14,6 +14,17 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    define: {
+      "globalThis.Buffer": ["buffer", "Buffer"],
+    },
+    resolve: {
+      alias: {
+        buffer: "buffer/",
+      },
+    },
+    optimizeDeps: {
+      include: ["buffer"],
+    },
     plugins: [
       VitePWA({
         strategies: "generateSW",

@@ -21,6 +21,9 @@ Línea(s) siguiente(s): un párrafo breve (1-2 frases) que explica en qué consi
 Línea con "El servicio incluye:" (o "El trabajo incluye:" si no es un servicio).
 3 a 5 líneas siguientes, cada una iniciando con "- ", describiendo las etapas o alcance del trabajo de forma genérica y profesional (preparación, ejecución, revisión final, etc.), coherentes con lo descrito pero sin inventar materiales, medidas ni plazos que el texto original no mencione.
 
+IMPORTANTE: No uses asteriscos, negritas, comillas, ni ningún formato markdown.
+El título debe ir en MAYÚSCULAS pero sin envolver en ** ni # ni ningún marcador.
+
 No agregues ninguna línea adicional fuera de esta estructura.
 Recuerda: tu respuesta debe ser SOLAMENTE el texto formateado, nada más.`;
 
@@ -40,13 +43,13 @@ export function buildMessages(mode: string, text: string) {
   ];
 }
 
-/** Strip markdown artifacts and meta-text that the model sometimes leaks. */
+/** Strip markdown markers but KEEP the content they wrap. */
 function sanitize(raw: string): string {
   return raw
-    .replace(/\*\*[^*]*\*\*/g, "")       // remove **bold** fragments
-    .replace(/^#+\s.*/gm, "")             // remove markdown headings
-    .replace(/^>\s.*/gm, "")              // remove blockquotes
-    .replace(/`{1,3}[^`]*`{1,3}/g, "")    // remove inline code / code blocks
+    .replace(/\*{1,3}/g, "")              // remove *, **, *** markers (keep wrapped text)
+    .replace(/^#+\s+/gm, "")              // remove heading markers (keep heading text)
+    .replace(/^>\s+/gm, "")               // remove blockquote markers (keep text)
+    .replace(/`/g, "")                     // remove backtick markers (keep text)
     .replace(/^\*\s/gm, "- ")             // normalise bullet markers
     .split("\n")
     .map((l) => l.trim())
@@ -60,7 +63,6 @@ const ENGLISH_NOISE = /\b(draft|brief|paragraph|summary|overview|here is|note:|o
 /** Quick heuristic: returns true when the response looks like usable Spanish text. */
 function looksValid(text: string): boolean {
   if (ENGLISH_NOISE.test(text)) return false;
-  if (text.includes("**")) return false;
   // Count common English function-words
   const ENGLISH_WORDS = new Set([
     "the", "and", "this", "with", "for", "that", "from", "have", "will",
@@ -88,7 +90,7 @@ export async function callGateway(mode: string, text: string): Promise<string> {
         model: "google/gemini-3.5-flash",
         messages: buildMessages(mode, text),
         temperature,
-        max_tokens: 500,
+        max_tokens: 800,
       }),
     });
 

@@ -258,8 +258,9 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
                 </button>
               </div>
               <Textarea
-                rows={2}
+                rows={Math.max(3, (item.descripcion.match(/\n/g)?.length ?? 0) + 2)}
                 maxLength={1200}
+                className="min-h-[4.5rem] resize-y"
                 placeholder="Descripción del producto o servicio"
                 value={item.descripcion}
                 onChange={(event) => patchItem(item.id, { descripcion: event.target.value })}
