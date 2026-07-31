@@ -56,6 +56,7 @@ export interface Quote {
   iva_percent: number;
   snapshot_negocio: Record<string, unknown> | null;
   snapshot_cliente: Record<string, unknown> | null;
+  observaciones?: string;
   created_at?: string;
   updated_at?: string;
 }

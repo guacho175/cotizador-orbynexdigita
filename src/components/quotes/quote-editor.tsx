@@ -309,6 +309,20 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
       </Card>
 
       <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Observaciones</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Observaciones adicionales para esta cotización (opcional). Si lo dejas en blanco se usará la condición por defecto de la empresa."
+            value={quote.observaciones || ""}
+            onChange={(event) => setQuote((c) => ({ ...c, observaciones: event.target.value }))}
+            className="min-h-[4rem] resize-y"
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="flex flex-col items-end gap-1 pt-6 text-sm tabular-nums">
           <div className="flex w-full max-w-xs justify-between">
             <span className="text-muted-foreground">Subtotal</span>

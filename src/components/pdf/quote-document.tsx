@@ -364,7 +364,7 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
           <View style={styles.observacionCol}>
             <Text style={styles.observacionLabel}>Observación</Text>
             <Text style={styles.observacionText}>
-              {business.condiciones || "La instalación considera la estructura actualmente disponible y una terminación profesional del material gráfico."}
+              {quote.observaciones || business.condiciones || "La instalación considera la estructura actualmente disponible y una terminación profesional del material gráfico."}
             </Text>
           </View>
 

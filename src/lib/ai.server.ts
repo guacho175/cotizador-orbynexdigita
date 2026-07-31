@@ -21,24 +21,9 @@ Línea 3: Párrafo vendedor y descriptivo (1 o 2 oraciones). Explica el valor de
 Línea 4: Escribe exactamente "El servicio incluye:"
 Líneas 5 en adelante: Entre 4 a 6 viñetas detallando el alcance del trabajo paso a paso. Cada viñeta DEBE iniciar con un guion medio y un espacio ("- "). Detalla etapas lógicas aunque el usuario no las haya mencionado explícitamente, pero siempre coherentes con el servicio principal.
 
-=== EJEMPLO DE ENTRADA ===
-Reposición de tela PVC de 15 oz, en medidas de 720 × 140 cm, incluye diseño e instalación.
-
-=== EJEMPLO DE SALIDA ESPERADA ===
-REPOSICIÓN E INSTALACIÓN DE GRÁFICA EN TELA PVC
-Tela PVC de 15 oz | Formato final: 7,20 x 1,40 m
-Servicio integral para la renovación de la gráfica publicitaria, considerando la preparación del archivo, producción e instalación final sobre la estructura existente.
-El servicio incluye:
-- Adaptación y preparación del diseño gráfico para impresión.
-- Producción e impresión de la nueva tela PVC de 15 oz.
-- Retiro del material gráfico existente.
-- Instalación, tensado y ajuste final sobre la estructura.
-- Revisión de terminaciones y presentación visual.
-================================
-
 Recuerda: 
 - NO uses asteriscos ni negritas en NINGUNA parte. Todo debe ser texto plano.
-- Devuelve SOLAMENTE el texto estructurado como en el ejemplo. No agregues saludos, ni frases como "Aquí tienes", ni despedidas.`;
+- Devuelve SOLAMENTE el texto estructurado. No agregues saludos, ni frases como "Aquí tienes", ni despedidas.`;
 
 const MODES: Record<string, string> = {
   mejorar: MEJORAR_PROMPT,
@@ -48,8 +33,17 @@ const MODES: Record<string, string> = {
 };
 
 export function buildMessages(mode: string, text: string) {
+  if (mode === "mejorar") {
+    return [
+      { role: "system" as const, content: MEJORAR_PROMPT },
+      { role: "user" as const, content: `Texto:\n"""Reposición de tela PVC de 15 oz, en medidas de 720 × 140 cm, incluye diseño e instalación."""` },
+      { role: "assistant" as const, content: `REPOSICIÓN E INSTALACIÓN DE GRÁFICA EN TELA PVC\nTela PVC de 15 oz | Formato final: 7,20 x 1,40 m\nServicio integral para la renovación de la gráfica publicitaria, considerando la preparación del archivo, producción e instalación final sobre la estructura existente.\nEl servicio incluye:\n- Adaptación y preparación del diseño gráfico para impresión.\n- Producción e impresión de la nueva tela PVC de 15 oz.\n- Retiro del material gráfico existente.\n- Instalación, tensado y ajuste final sobre la estructura.\n- Revisión de terminaciones y presentación visual.` },
+      { role: "user" as const, content: `Texto:\n"""${text}"""` },
+    ];
+  }
+
   const instruction = MODES[mode] ?? MODES.mejorar;
-  const system = mode === "mejorar" ? instruction : `${BASE_RULES}\n\n${instruction}\nMáximo 60 palabras.`;
+  const system = `${BASE_RULES}\n\n${instruction}\nMáximo 60 palabras.`;
   return [
     { role: "system" as const, content: system },
     { role: "user" as const, content: `Texto:\n"""${text}"""` },
@@ -103,7 +97,7 @@ export async function callGateway(mode: string, text: string): Promise<string> {
         model: "google/gemini-3.5-flash",
         messages: buildMessages(mode, text),
         temperature,
-        max_tokens: 800,
+        max_tokens: 1500,
       }),
     });
 
