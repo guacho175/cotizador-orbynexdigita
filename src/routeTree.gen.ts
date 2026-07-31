@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
+import { Route as AuthenticatedCotizacionesIndexRouteImport } from './routes/_authenticated/cotizaciones/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,26 @@ const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   path: '/panel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCotizacionesIndexRoute =
+  AuthenticatedCotizacionesIndexRouteImport.update({
+    id: '/cotizaciones/',
+    path: '/cotizaciones/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/panel': typeof AuthenticatedPanelRoute
+  '/cotizaciones/': typeof AuthenticatedCotizacionesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/panel': typeof AuthenticatedPanelRoute
+  '/cotizaciones': typeof AuthenticatedCotizacionesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +68,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
+  '/_authenticated/cotizaciones/': typeof AuthenticatedCotizacionesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/reset-password' | '/panel'
+  fullPaths: '/' | '/auth' | '/reset-password' | '/panel' | '/cotizaciones/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/reset-password' | '/panel'
+  to: '/' | '/auth' | '/reset-password' | '/panel' | '/cotizaciones'
   id:
     | '__root__'
     | '/'
@@ -72,6 +82,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/_authenticated/panel'
+    | '/_authenticated/cotizaciones/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,15 +129,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cotizaciones/': {
+      id: '/_authenticated/cotizaciones/'
+      path: '/cotizaciones'
+      fullPath: '/cotizaciones/'
+      preLoaderRoute: typeof AuthenticatedCotizacionesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
+  AuthenticatedCotizacionesIndexRoute: typeof AuthenticatedCotizacionesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
+  AuthenticatedCotizacionesIndexRoute: AuthenticatedCotizacionesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
