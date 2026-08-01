@@ -13,7 +13,7 @@ export function pdfFileName(props: QuoteDocumentProps): string {
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .toLowerCase()
     .slice(0, 40);
-  return `cotizacion-${quoteNumber(props.quote.numero)}-${cliente}.pdf`;
+  return `cotizacion-${quoteNumber(props.quote.numero, props.quote.folio_cliente)}-${cliente}.pdf`;
 }
 
 export async function previewQuotePdfUrl(props: QuoteDocumentProps): Promise<string> {

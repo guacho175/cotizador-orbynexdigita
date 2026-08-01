@@ -306,7 +306,7 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
 
   return (
     <Document
-      title={`Cotización ${quoteNumber(quote.numero)}`}
+      title={`Cotización ${quoteNumber(quote.numero, quote.folio_cliente)}`}
       author={business.nombre || "Cotización"}
     >
       <Page size="A4" style={styles.page} wrap>
@@ -321,7 +321,7 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
           </View>
           <View style={styles.quoteBadge}>
             <Text style={[styles.quoteLabel, { color: contrastColor, opacity: 0.9 }]}>COTIZACIÓN N°</Text>
-            <Text style={[styles.quoteNumber, { color: contrastColor }]}>{quoteNumber(quote.numero)}</Text>
+            <Text style={[styles.quoteNumber, { color: contrastColor }]}>{quoteNumber(quote.numero, quote.folio_cliente)}</Text>
             <Text style={[styles.quoteDate, { color: contrastColor, opacity: 0.8 }]}>Fecha: {formatDate(quote.fecha)}</Text>
             <Text style={[styles.quoteDate, { color: contrastColor, opacity: 0.8 }]}>Válida hasta: {formatDate(validUntil)}</Text>
           </View>

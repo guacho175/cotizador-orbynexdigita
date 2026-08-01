@@ -47,6 +47,7 @@ export function computeTotals(
   return { subtotal, iva, total: subtotal + iva };
 }
 
-export function quoteNumber(numero: number | null): string {
-  return numero == null ? "—" : String(numero).padStart(5, "0");
+export function quoteNumber(numero: number | null, folio_cliente?: number | null): string {
+  const val = folio_cliente ?? numero;
+  return val == null ? "—" : String(val).padStart(5, "0");
 }

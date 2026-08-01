@@ -86,7 +86,7 @@ function Panel() {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
-                    N° {quoteNumber(quote.numero)} · {formatDate(quote.fecha)}
+                    N° {quoteNumber(quote.numero, quote.folio_cliente)} · {formatDate(quote.fecha)}
                   </p>
                   <p className="text-xs text-muted-foreground">{money(quote.total)}</p>
                 </div>

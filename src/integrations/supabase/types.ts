@@ -209,6 +209,7 @@ export type Database = {
           created_at: string
           estado: string
           fecha: string
+          folio_cliente: number | null
           id: string
           iva: number
           iva_percent: number
@@ -227,6 +228,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          folio_cliente?: number | null
           id?: string
           iva?: number
           iva_percent?: number
@@ -245,6 +247,7 @@ export type Database = {
           created_at?: string
           estado?: string
           fecha?: string
+          folio_cliente?: number | null
           id?: string
           iva?: number
           iva_percent?: number

@@ -35,7 +35,7 @@ function QuotesList() {
     .filter((quote) => {
       if (!term.trim()) return true;
       const cliente = clients.find((c) => c.id === quote.client_id)?.nombre ?? "";
-      const haystack = `${quoteNumber(quote.numero)} ${cliente} ${quote.estado}`.toLowerCase();
+      const haystack = `${quoteNumber(quote.numero, quote.folio_cliente)} ${cliente} ${quote.estado}`.toLowerCase();
       return haystack.includes(term.trim().toLowerCase());
     })
     .sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""));
@@ -80,7 +80,7 @@ function QuotesList() {
                     className="min-w-0 flex-1"
                   >
                     <p className="text-sm font-medium">
-                      N° {quoteNumber(quote.numero)} · {cliente?.nombre ?? "Sin cliente"}
+                      N° {quoteNumber(quote.numero, quote.folio_cliente)} · {cliente?.nombre ?? "Sin cliente"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(quote.fecha)} · {money(quote.total)}
