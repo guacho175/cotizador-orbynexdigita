@@ -42,13 +42,38 @@ export async function pullAll(userId: string): Promise<void> {
   const firstError = businesses.error || clients.error || quotes.error || items.error;
   if (firstError) throw firstError;
 
-  const localLogo = (await db.businesses.where("user_id").equals(userId).first())?.logo_data;
+  const localBusinesses = await db.businesses.where("user_id").equals(userId).toArray();
+
+  const businessesToPut = await Promise.all(
+    (businesses.data ?? []).map(async (row) => {
+      const localBiz = localBusinesses.find((b) => b.id === row.id);
+      
+      let currentLogoData = localBiz?.logo_data ?? null;
+
+      // Si no tenemos logo local o si el path del logo en el servidor es distinto al que teníamos
+      if (row.logo_path && (!currentLogoData || localBiz?.logo_path !== row.logo_path)) {
+        try {
+          const { data, error } = await supabase.storage.from("logos").download(row.logo_path);
+          if (data && !error) {
+            currentLogoData = await new Promise<string | null>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(String(reader.result));
+              reader.onerror = () => resolve(null);
+              reader.readAsDataURL(data);
+            });
+          }
+        } catch (e) {
+          console.error("[sync] failed to download logo", e);
+        }
+      }
+
+      return { ...(row as unknown as Business), logo_data: currentLogoData || null };
+    })
+  );
 
   await db.transaction("rw", [db.businesses, db.clients, db.quotes, db.items], async () => {
     await Promise.all([db.businesses.clear(), db.clients.clear(), db.quotes.clear(), db.items.clear()]);
-    await db.businesses.bulkPut(
-      (businesses.data ?? []).map((row) => ({ ...(row as unknown as Business), logo_data: localLogo ?? null })),
-    );
+    await db.businesses.bulkPut(businessesToPut);
     await db.clients.bulkPut((clients.data ?? []) as unknown as Client[]);
     await db.quotes.bulkPut((quotes.data ?? []) as unknown as Quote[]);
     await db.items.bulkPut((items.data ?? []) as unknown as QuoteItem[]);

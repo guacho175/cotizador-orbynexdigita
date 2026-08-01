@@ -1,8 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { CloudOff, FileText, Sparkles, ShieldCheck } from "lucide-react";
+import { CloudOff, FileText, Sparkles, ShieldCheck, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/layout/install-prompt";
+import { PublicHeader } from "@/components/layout/public-header";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -57,15 +60,7 @@ const FEATURES = [
 function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-        <div className="flex items-center gap-2">
-          <img src="/icons/icon-192.png" alt="" width={32} height={32} className="rounded-lg" />
-          <span className="text-lg font-semibold tracking-tight">Cotiza</span>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/auth">Entrar</Link>
-        </Button>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto max-w-5xl px-5 pb-20">
         <section className="py-12 md:py-20">
@@ -73,11 +68,10 @@ function Landing() {
             Sistema de cotizaciones inteligentes
           </p>
           <h1 className="max-w-2xl text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
-            Cotizaciones profesionales en minutos, incluso sin internet.
+            Cotizaciones profesionales en minutos, 100% offline.
           </h1>
           <p className="mt-5 max-w-xl text-muted-foreground">
-            Registra tus productos, deja que el asistente pula la redacción y entrega un PDF impecable
-            con tus datos de transferencia y numeración correlativa.
+            Registra tus productos, crea cotizaciones impecables sin necesidad de conexión y deja que todo se sincronice automáticamente cuando vuelves a tener señal.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -89,6 +83,16 @@ function Landing() {
           </div>
           <div className="mt-8 max-w-md">
             <InstallPrompt />
+          </div>
+
+          <div className="mt-8">
+            <Alert className="border-primary/50 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertTitle className="text-primary font-semibold">Uso Offline</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                Todas las funcionalidades base operan 100% sin conexión. El asistente de Inteligencia Artificial es la única característica que requiere una conexión a internet activa para generar textos.
+              </AlertDescription>
+            </Alert>
           </div>
         </section>
 
@@ -102,6 +106,7 @@ function Landing() {
           ))}
         </section>
       </main>
+      <PublicFooter />
     </div>
   );
 }
