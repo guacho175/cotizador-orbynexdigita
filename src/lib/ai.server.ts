@@ -1,3 +1,5 @@
+import { GoogleGenAI } from "@google/genai";
+
 export interface AiRewriteResult {
   text: string;
 }
@@ -36,8 +38,14 @@ export function buildMessages(mode: string, text: string) {
   if (mode === "mejorar") {
     return [
       { role: "system" as const, content: MEJORAR_PROMPT },
-      { role: "user" as const, content: `Texto:\n"""Reposición de tela PVC de 15 oz, en medidas de 720 × 140 cm, incluye diseño e instalación."""` },
-      { role: "assistant" as const, content: `REPOSICIÓN E INSTALACIÓN DE GRÁFICA EN TELA PVC\nTela PVC de 15 oz | Formato final: 7,20 x 1,40 m\nServicio integral para la renovación de la gráfica publicitaria, considerando la preparación del archivo, producción e instalación final sobre la estructura existente.\nEl servicio incluye:\n- Adaptación y preparación del diseño gráfico para impresión.\n- Producción e impresión de la nueva tela PVC de 15 oz.\n- Retiro del material gráfico existente.\n- Instalación, tensado y ajuste final sobre la estructura.\n- Revisión de terminaciones y presentación visual.` },
+      {
+        role: "user" as const,
+        content: `Texto:\n"""Reposición de tela PVC de 15 oz, en medidas de 720 × 140 cm, incluye diseño e instalación."""`,
+      },
+      {
+        role: "assistant" as const,
+        content: `REPOSICIÓN E INSTALACIÓN DE GRÁFICA EN TELA PVC\nTela PVC de 15 oz | Formato final: 7,20 x 1,40 m\nServicio integral para la renovación de la gráfica publicitaria, considerando la preparación del archivo, producción e instalación final sobre la estructura existente.\nEl servicio incluye:\n- Adaptación y preparación del diseño gráfico para impresión.\n- Producción e impresión de la nueva tela PVC de 15 oz.\n- Retiro del material gráfico existente.\n- Instalación, tensado y ajuste final sobre la estructura.\n- Revisión de terminaciones y presentación visual.`,
+      },
       { role: "user" as const, content: `Texto:\n"""${text}"""` },
     ];
   }
@@ -53,11 +61,11 @@ export function buildMessages(mode: string, text: string) {
 /** Strip markdown markers but KEEP the content they wrap. */
 function sanitize(raw: string): string {
   return raw
-    .replace(/\*{1,3}/g, "")              // remove *, **, *** markers (keep wrapped text)
-    .replace(/^#+\s+/gm, "")              // remove heading markers (keep heading text)
-    .replace(/^>\s+/gm, "")               // remove blockquote markers (keep text)
-    .replace(/`/g, "")                     // remove backtick markers (keep text)
-    .replace(/^\*\s/gm, "- ")             // normalise bullet markers
+    .replace(/\*{1,3}/g, "") // remove *, **, *** markers (keep wrapped text)
+    .replace(/^#+\s+/gm, "") // remove heading markers (keep heading text)
+    .replace(/^>\s+/gm, "") // remove blockquote markers (keep text)
+    .replace(/`/g, "") // remove backtick markers (keep text)
+    .replace(/^\*\s/gm, "- ") // normalise bullet markers
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0)
@@ -65,68 +73,160 @@ function sanitize(raw: string): string {
     .trim();
 }
 
-const ENGLISH_NOISE = /\b(draft|brief|paragraph|summary|overview|here is|note:|output:|response:)\b/i;
+const ENGLISH_NOISE =
+  /\b(draft|brief|paragraph|summary|overview|here is|note:|output:|response:)\b/i;
 
 /** Quick heuristic: returns true when the response looks like usable Spanish text. */
 function looksValid(text: string): boolean {
   if (ENGLISH_NOISE.test(text)) return false;
   // Count common English function-words
   const ENGLISH_WORDS = new Set([
-    "the", "and", "this", "with", "for", "that", "from", "have", "will",
-    "are", "you", "your", "not", "but", "was", "been", "can", "all",
-    "about", "into",
+    "the",
+    "and",
+    "this",
+    "with",
+    "for",
+    "that",
+    "from",
+    "have",
+    "will",
+    "are",
+    "you",
+    "your",
+    "not",
+    "but",
+    "was",
+    "been",
+    "can",
+    "all",
+    "about",
+    "into",
   ]);
-  const words = text.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const words = text
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
   if (words.length === 0) return false;
   const englishCount = words.filter((w) => ENGLISH_WORDS.has(w)).length;
   return englishCount / words.length < 0.15;
 }
 
+// Monthly quota depletion model cache
+const blockedModels = new Map<string, number>(); // modelName -> monthIndex (0..11)
+
+function isModelBlocked(model: string): boolean {
+  const currentMonth = new Date().getMonth();
+  const blockedMonth = blockedModels.get(model);
+  if (blockedMonth === undefined) return false;
+  if (blockedMonth !== currentMonth) {
+    // Reset block if a new month has started
+    blockedModels.delete(model);
+    return false;
+  }
+  return true;
+}
+
+function blockModel(model: string) {
+  const currentMonth = new Date().getMonth();
+  blockedModels.set(model, currentMonth);
+  console.warn(`[AI Cascade] Model ${model} marked as QUOTA_EXHAUSTED until month reset.`);
+}
+
+const DEFAULT_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash-lite",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3-flash-preview",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
+];
+
 export async function callGateway(mode: string, text: string): Promise<string> {
-  const apiKey = process.env.LOVABLE_API_KEY;
-  if (!apiKey) throw new Error("AI no configurada");
+  // Parse API keys (supports comma-separated list GEMINI_API_KEYS or single GEMINI_API_KEY)
+  const keysInput = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "";
+  const apiKeys = keysInput
+    .split(",")
+    .map((k) => k.trim())
+    .filter((k) => k.length > 0);
+
+  if (apiKeys.length === 0) {
+    throw new Error("AI no configurada. Agrega GEMINI_API_KEY en las variables de entorno.");
+  }
 
   async function attempt(temperature: number): Promise<string> {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Lovable-API-Key": apiKey!,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.5-flash",
-        messages: buildMessages(mode, text),
-        temperature,
-        max_tokens: 1500,
-      }),
-    });
+    let lastError: unknown = null;
 
-    if (response.status === 429) throw new Error("Límite de solicitudes alcanzado. Intenta en unos minutos.");
-    if (response.status === 402) throw new Error("Sin créditos de IA disponibles en el espacio de trabajo.");
-    if (!response.ok) {
-      console.error("[ai] gateway error", response.status, await response.text());
-      throw new Error("El asistente de redacción no está disponible ahora.");
+    // Try each API Key across available models in cascade
+    for (const apiKey of apiKeys) {
+      const ai = new GoogleGenAI({ apiKey });
+      const messages = buildMessages(mode, text);
+      const systemInstruction = messages.find((m) => m.role === "system")?.content;
+      const userContent = messages
+        .filter((m) => m.role !== "system")
+        .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+        .join("\n\n");
+
+      for (const model of DEFAULT_MODELS) {
+        if (isModelBlocked(model)) {
+          console.log(`[AI Cascade] Skipping ${model} because it is quota blocked for this month.`);
+          continue;
+        }
+
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: userContent,
+            config: {
+              systemInstruction,
+              temperature,
+              maxOutputTokens: 1500,
+            },
+          });
+
+          const content = response.text?.trim();
+          if (content && content.length > 0) {
+            return content;
+          }
+        } catch (err: unknown) {
+          lastError = err;
+          const errMessage = err instanceof Error ? err.message : String(err);
+          const isRateLimit =
+            errMessage.includes("429") ||
+            errMessage.toLowerCase().includes("quota") ||
+            errMessage.toLowerCase().includes("rate");
+
+          if (isRateLimit) {
+            blockModel(model);
+          }
+
+          console.warn(
+            `[AI Cascade] Attempt with model ${model} failed (${isRateLimit ? "Quota 429 - Blocked" : "Error"}). Trying next fallback...`,
+          );
+          // Continue loop to try next model / next key
+        }
+      }
     }
 
-    const payload = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = payload.choices?.[0]?.message?.content?.trim();
-    if (!content) throw new Error("El asistente no devolvió texto.");
-
-    console.log("[ai] raw response:", content);
-    return content;
+    console.error("[AI Cascade] All API keys and model attempts exhausted.", lastError);
+    throw new Error(
+      "El servicio de IA superó el límite de cuota o no está disponible temporalmente.",
+    );
   }
 
   // First attempt with slightly higher temperature for creativity
   let raw = await attempt(0.5);
-  let result = sanitize(raw).replace(/^["'`]+|["'`]+$/g, "").trim();
+  let result = sanitize(raw)
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .trim();
 
   // If the result looks invalid, retry once with lower temperature
   if (!looksValid(result)) {
     console.warn("[ai] first response failed validation, retrying with lower temperature");
     raw = await attempt(0.1);
-    result = sanitize(raw).replace(/^["'`]+|["'`]+$/g, "").trim();
+    result = sanitize(raw)
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .trim();
 
     if (!looksValid(result)) {
       console.error("[ai] second response also failed validation:", result);

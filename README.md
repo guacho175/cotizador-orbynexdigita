@@ -2,7 +2,7 @@
 
 Sistema de Cotizaciones Inteligentes (MVP)
 
-Quiero que construyas una aplicación web profesional, completamente funcional y preparada para producción utilizando Lovable.
+Aplicación web profesional, completamente funcional y preparada para producción.
 
 Voy a proporcionar una plantilla de cotización (PDF o imagen). Esa plantilla representa el diseño que deseo obtener.
 
@@ -28,7 +28,7 @@ Todo el almacenamiento debe utilizar Supabase Storage.
 
 Toda la información debe pertenecer exclusivamente al usuario autenticado mediante Row Level Security.
 
-El código debe permanecer sincronizable con GitHub y no depender de permanecer dentro de Lovable para continuar el desarrollo.
+El código debe permanecer sincronizable con GitHub y ser independiente de cualquier plataforma para continuar el desarrollo.
 
 Producto
 
@@ -234,7 +234,7 @@ No utilizar datos simulados.
 
 No utilizar implementaciones temporales.
 
-El código debe ser modular, limpio, escalable y fácil de continuar desarrollando fuera de Lovable.
+El código debe ser modular, limpio, escalable y fácil de continuar desarrollando.
 
 Entregable esperado
 
@@ -266,23 +266,7 @@ funcionar correctamente como PWA instalada
 
 Si durante el desarrollo encuentras decisiones menores de implementación, resuélvelas aplicando buenas prácticas de arquitectura y experiencia de usuario.
 
-Prioriza siempre la calidad del producto final, la mantenibilidad del código y la independencia del proyecto respecto de Lovable. El resultado debe quedar listo para continuar evolucionándolo desde GitHub y Supabase sin depender de la plataforma.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://cotizador-orbynexdigita.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/5477d6d1-e70a-4de7-9c61-883c7ea4b5f7).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
 ## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
 ```sh
 git clone <this-repository-url>
@@ -290,3 +274,13 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Deployment
+
+This project deploys to Vercel. Configure the following environment variables in Vercel:
+
+- `SUPABASE_PROJECT_ID`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GEMINI_API_KEY`
