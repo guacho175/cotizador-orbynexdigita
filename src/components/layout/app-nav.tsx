@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { FileText, LayoutDashboard, Users, Building2 } from "lucide-react";
+import { FileText, LayoutDashboard, Users, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -7,6 +7,7 @@ const LINKS = [
   { to: "/cotizaciones", label: "Cotizaciones", icon: FileText },
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/negocio", label: "Negocio", icon: Building2 },
+  { to: "/perfil", label: "Perfil", icon: User },
 ] as const;
 
 export function AppNav({ variant }: { variant: "sidebar" | "bottom" }) {
@@ -15,7 +16,7 @@ export function AppNav({ variant }: { variant: "sidebar" | "bottom" }) {
   if (variant === "bottom") {
     return (
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden">
-        <ul className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+        <ul className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
           {LINKS.map((link) => {
             const active = pathname.startsWith(link.to);
             return (

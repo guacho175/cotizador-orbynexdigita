@@ -43,7 +43,9 @@ function AuthenticatedLayout() {
           </Link>
           <AppNav variant="sidebar" />
           <div className="mt-auto space-y-3">
-            <p className="truncate px-3 text-xs text-muted-foreground">{user.email}</p>
+            <Link to="/perfil" className="block truncate px-3 text-xs text-muted-foreground hover:text-foreground hover:underline">
+              {user.email}
+            </Link>
             <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => void signOut()}>
               <LogOut className="size-4" />
               Cerrar sesión

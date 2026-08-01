@@ -6,6 +6,7 @@ import { money, formatDate, quoteNumber } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { InstallPrompt } from "@/components/layout/install-prompt";
+import { OnboardingAlert } from "@/components/layout/onboarding-alert";
 
 export const Route = createFileRoute("/_authenticated/panel")({
   head: () => ({
@@ -46,6 +47,7 @@ function Panel() {
       </div>
 
       <InstallPrompt />
+      <OnboardingAlert />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
