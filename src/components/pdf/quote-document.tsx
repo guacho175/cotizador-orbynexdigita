@@ -255,23 +255,23 @@ function parseItemDescription(raw: string): ParsedItemDescription {
   };
 }
 
-function ItemDescription({ text }: { text: string }) {
+function ItemDescription({ text, isCompact }: { text: string; isCompact?: boolean }) {
   const parsed = parseItemDescription(text || "");
   if (parsed.plain !== undefined) {
-    return <Text style={styles.itemParagraph}>{parsed.plain || "—"}</Text>;
+    return <Text style={[styles.itemParagraph, isCompact && { fontSize: 8.5, marginBottom: 4 }]}>{parsed.plain || "—"}</Text>;
   }
   return (
     <View>
-      {parsed.title ? <Text style={styles.itemTitle}>{parsed.title}</Text> : null}
-      {parsed.subtitle ? <Text style={styles.itemSubtitle}>{parsed.subtitle}</Text> : null}
-      {parsed.paragraph ? <Text style={styles.itemParagraph}>{parsed.paragraph}</Text> : null}
+      {parsed.title ? <Text style={[styles.itemTitle, isCompact && { fontSize: 9, marginBottom: 1 }]}>{parsed.title}</Text> : null}
+      {parsed.subtitle ? <Text style={[styles.itemSubtitle, isCompact && { fontSize: 8, marginBottom: 4 }]}>{parsed.subtitle}</Text> : null}
+      {parsed.paragraph ? <Text style={[styles.itemParagraph, isCompact && { fontSize: 8.5, marginBottom: 4 }]}>{parsed.paragraph}</Text> : null}
       {parsed.bullets?.length ? (
         <View>
-          <Text style={styles.itemIncludesHeader}>{parsed.includesHeader}</Text>
+          <Text style={[styles.itemIncludesHeader, isCompact && { fontSize: 8.5, marginBottom: 3 }]}>{parsed.includesHeader}</Text>
           {parsed.bullets.map((bullet, index) => (
-            <View key={index} style={styles.bulletRow}>
-              <Text style={styles.bulletCheck}>✓</Text>
-              <Text style={styles.bulletText}>{bullet}</Text>
+            <View key={index} style={[styles.bulletRow, isCompact && { marginBottom: 2 }]}>
+              <Text style={[styles.bulletCheck, isCompact && { width: 10, height: 10, fontSize: 7, marginTop: 1.5 }]}>✓</Text>
+              <Text style={[styles.bulletText, isCompact && { fontSize: 8.5 }]}>{bullet}</Text>
             </View>
           ))}
         </View>
@@ -303,6 +303,9 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
   const validUntil = addDays(quote.fecha, quote.validez_dias || 0);
   const themeColor = business.color_factura || NAVY;
   const contrastColor = getContrastColor(themeColor);
+
+  const totalChars = items.reduce((acc, item) => acc + (item.descripcion?.length || 0), 0);
+  const isCompact = items.length >= 3 || totalChars > 600;
 
   return (
     <Document
@@ -354,16 +357,16 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
 
         <View style={styles.itemsBox}>
           {items.map((item) => (
-            <View key={item.id} style={styles.itemBlock} wrap={false}>
+            <View key={item.id} style={[styles.itemBlock, isCompact && { paddingBottom: 8 }]} wrap={false}>
               <View style={styles.itemTopRow}>
                 <View style={{ flex: 1 }}>
-                  <ItemDescription text={item.descripcion} />
+                  <ItemDescription text={item.descripcion} isCompact={isCompact} />
                 </View>
                 <View style={styles.priceCol}>
-                  <Text style={styles.priceValue}>{money(item.precio_unitario)}</Text>
+                  <Text style={[styles.priceValue, isCompact && { fontSize: 10 }]}>{money(item.precio_unitario)}</Text>
                   <Text style={styles.priceCurrency}>CLP</Text>
                   {item.cantidad > 1 && (
-                    <Text style={styles.priceQty}>
+                    <Text style={[styles.priceQty, isCompact && { fontSize: 7, marginTop: 2 }]}>
                       Cant: {item.cantidad} | {money(lineTotal(item.cantidad, item.precio_unitario))}
                     </Text>
                   )}
@@ -371,60 +374,62 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
               </View>
             </View>
           ))}
+
+          <View style={{ flexGrow: 1 }} />
+
+          <View wrap={false}>
+            <View style={[styles.bottomRow, isCompact && { marginTop: 8, paddingTop: 6 }]}>
+              <View style={styles.observacionCol}>
+                <Text style={styles.observacionLabel}>Observación</Text>
+                <Text style={styles.observacionText}>
+                  {quote.observaciones || business.condiciones || "La instalación considera la estructura actualmente disponible y una terminación profesional del material gráfico."}
+                </Text>
+              </View>
+
+              <View style={styles.totalsCol}>
+                <View style={styles.totalRow}>
+                  <Text style={styles.observacionText}>Valor neto</Text>
+                  <Text style={styles.observacionText}>{money(quote.subtotal)}</Text>
+                </View>
+                <View style={styles.totalRow}>
+                  <Text style={styles.observacionText}>IVA ({quote.iva_percent}%)</Text>
+                  <Text style={styles.observacionText}>{money(quote.iva)}</Text>
+                </View>
+                <View style={[styles.grandTotal, { backgroundColor: themeColor }]}>
+                  <Text style={[styles.grandLabel, { color: contrastColor }]}>TOTAL</Text>
+                  <Text style={[styles.grandValue, { color: contrastColor }]}>{money(quote.total)}</Text>
+                </View>
+              </View>
+            </View>
+
+            {business.banco_nombre || business.banco_numero_cuenta ? (
+              <View style={[styles.bankBar, isCompact && { marginTop: 10 }]}>
+                <View style={styles.bankCol}>
+                  <Text style={styles.bankTitle}>DATOS DE TRANSFERENCIA</Text>
+                  <Text style={styles.bankText}>
+                    <Text style={styles.bankBold}>{business.banco_titular?.toUpperCase() || "—"}</Text>
+                  </Text>
+                  <Text style={styles.bankText}>RUT {business.banco_rut || "—"}</Text>
+                  <Text style={styles.bankText}>
+                    <Text style={styles.bankBold}>{business.banco_nombre?.toUpperCase() || "—"}</Text> - {business.banco_tipo_cuenta?.toUpperCase() || "—"}
+                  </Text>
+                </View>
+                <View style={styles.bankCol}>
+                  <Text style={styles.bankTitle}>Confirmación de pago</Text>
+                  <Text style={styles.bankText}>
+                    N° de cuenta: <Text style={styles.bankBold}>{business.banco_numero_cuenta || "—"}</Text>
+                  </Text>
+                  <Text style={styles.bankText}>
+                    Email: {business.banco_email || "—"}
+                  </Text>
+                  <Text style={[styles.bankText, { marginTop: 4, lineHeight: 1.3 }]}>
+                    Una vez recibido el comprobante de transferencia, se dará curso a la solicitud.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+          </View>
         </View>
-
-        <View style={styles.bottomRow} wrap={false}>
-          <View style={styles.observacionCol}>
-            <Text style={styles.observacionLabel}>Observación</Text>
-            <Text style={styles.observacionText}>
-              {quote.observaciones || business.condiciones || "La instalación considera la estructura actualmente disponible y una terminación profesional del material gráfico."}
-            </Text>
-          </View>
-
-          <View style={styles.totalsCol}>
-            <View style={styles.totalRow}>
-              <Text style={styles.observacionText}>Valor neto</Text>
-              <Text style={styles.observacionText}>{money(quote.subtotal)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.observacionText}>IVA ({quote.iva_percent}%)</Text>
-              <Text style={styles.observacionText}>{money(quote.iva)}</Text>
-            </View>
-            <View style={[styles.grandTotal, { backgroundColor: themeColor }]}>
-              <Text style={[styles.grandLabel, { color: contrastColor }]}>TOTAL</Text>
-              <Text style={[styles.grandValue, { color: contrastColor }]}>{money(quote.total)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {business.banco_nombre || business.banco_numero_cuenta ? (
-          <View style={styles.bankBar} wrap={false}>
-            <View style={styles.bankCol}>
-              <Text style={styles.bankTitle}>DATOS DE TRANSFERENCIA</Text>
-              <Text style={styles.bankText}>
-                <Text style={styles.bankBold}>{business.banco_titular?.toUpperCase() || "—"}</Text>
-              </Text>
-              <Text style={styles.bankText}>RUT {business.banco_rut || "—"}</Text>
-              <Text style={styles.bankText}>
-                <Text style={styles.bankBold}>{business.banco_nombre?.toUpperCase() || "—"}</Text> - {business.banco_tipo_cuenta?.toUpperCase() || "—"}
-              </Text>
-            </View>
-            <View style={styles.bankCol}>
-              <Text style={styles.bankTitle}>Confirmación de pago</Text>
-              <Text style={styles.bankText}>
-                N° de cuenta: <Text style={styles.bankBold}>{business.banco_numero_cuenta || "—"}</Text>
-              </Text>
-              <Text style={styles.bankText}>
-                Email: {business.banco_email || "—"}
-              </Text>
-              <Text style={[styles.bankText, { marginTop: 4, lineHeight: 1.3 }]}>
-                Una vez recibido el comprobante de transferencia, se dará curso a la solicitud.
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
-
 
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>
