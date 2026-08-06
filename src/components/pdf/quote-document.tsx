@@ -305,7 +305,8 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
   const contrastColor = getContrastColor(themeColor);
 
   const totalChars = items.reduce((acc, item) => acc + (item.descripcion?.length || 0), 0);
-  const isCompact = items.length >= 3 || totalChars > 600;
+  const totalLines = items.reduce((acc, item) => acc + (item.descripcion?.split(/\r?\n/).length || 1), 0);
+  const isCompact = items.length >= 3 || totalChars > 600 || totalLines > 12;
 
   return (
     <Document
