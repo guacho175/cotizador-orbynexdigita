@@ -150,8 +150,8 @@
   box-shadow: 0 8px 20px rgba(0, 97, 255, 0.25);
   transition: all 0.3s ease;
   color: white;
-}
 
-@utility bg-electric-glow:hover {
-  box-shadow: 0 4px 12px rgba(0, 97, 255, 0.2);
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 97, 255, 0.2);
+  }
 }

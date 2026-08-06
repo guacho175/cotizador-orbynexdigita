@@ -10,7 +10,7 @@ const RewriteInput = z.object({
 
 export const rewriteDescription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => RewriteInput.parse(input))
+  .validator((input: unknown) => RewriteInput.parse(input))
   .handler(async ({ data }) => {
     const text = await callGateway(data.mode, data.text);
     return { text };
