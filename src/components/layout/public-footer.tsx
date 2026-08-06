@@ -4,33 +4,27 @@ export function PublicFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border/40 bg-muted/20">
-      <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-5 py-8 md:flex-row md:py-12">
-        <div className="flex flex-col items-center gap-2 md:items-start">
+    <footer className="border-t border-border/40 bg-background/80 backdrop-blur-md relative z-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 py-10 md:flex-row md:py-12">
+        <div className="flex flex-col items-center gap-4 md:items-start">
           <div className="flex items-center gap-2">
-            <img src="/icons/icon-192.png" alt="Cotiza Icon" width={24} height={24} className="rounded-md grayscale opacity-80" />
-            <span className="text-base font-semibold tracking-tight text-foreground/80">Cotiza</span>
+            <img src="/assets/logos/logo_orbynex_horizontal_oscuro_v2.png" alt="Orbynex" className="h-6 opacity-70 grayscale hover:grayscale-0 transition-all dark:hidden" />
+            <img src="/assets/logos/logo_orbynex_horizontal_blanco_v2.png" alt="Orbynex" className="h-6 opacity-70 grayscale hover:grayscale-0 transition-all hidden dark:block" />
           </div>
-          <p className="text-sm text-muted-foreground text-center md:text-left">
-            La herramienta offline-first para cotizaciones profesionales.
+          <p className="text-sm text-muted-foreground text-center md:text-left max-w-xs">
+            Impulsa tus ventas con el sistema de cotizaciones más avanzado y profesional.
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-2 md:items-end">
-          <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} Cotiza. Todos los derechos reservados.
+          <p className="text-sm text-muted-foreground font-medium">
+            &copy; {currentYear} Orbynex Digital.
           </p>
-          <p className="text-sm text-muted-foreground">
-            Desarrollado con ❤️ por{" "}
-            <a
-              href="https://orbynexdigital.cl"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-foreground hover:text-primary transition-colors"
-            >
-              Orbynex Digital
-            </a>
-          </p>
+          <div className="flex items-center gap-4 mt-2">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-electric-blue transition-colors">Privacidad</Link>
+            <Link to="/" className="text-sm text-muted-foreground hover:text-electric-blue transition-colors">Términos</Link>
+            <a href="mailto:contacto@orbynexdigital.cl" className="text-sm text-muted-foreground hover:text-electric-blue transition-colors">Soporte</a>
+          </div>
         </div>
       </div>
     </footer>

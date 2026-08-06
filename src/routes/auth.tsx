@@ -81,44 +81,50 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4 py-10">
-      <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 flex items-center justify-center gap-2">
-          <img src="/icons/icon-192.png" alt="" width={36} height={36} className="rounded-lg" />
-          <span className="text-xl font-semibold tracking-tight">Cotiza</span>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
+      {/* Fondo de luz líquida / inmersivo simulado con CSS */}
+      <div className="pointer-events-none fixed inset-0 z-0 opacity-40 mix-blend-multiply dark:mix-blend-screen">
+        <div className="absolute top-[-10%] left-[-10%] h-[50vh] w-[50vw] rounded-full bg-electric-blue/30 blur-[100px]" />
+        <div className="absolute right-[-5%] bottom-[-10%] h-[60vh] w-[40vw] rounded-full bg-neon-purple/20 blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        <Link to="/" className="mb-8 flex flex-col items-center justify-center gap-3">
+          <img src="/assets/logos/logo_orbynex_horizontal_oscuro_v2.png" alt="Orbynex" className="h-8 dark:hidden" />
+          <img src="/assets/logos/logo_orbynex_horizontal_blanco_v2.png" alt="Orbynex" className="h-8 hidden dark:block" />
         </Link>
 
         {emailSent ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Revisa tu correo</CardTitle>
-              <CardDescription>
-                Enviamos un enlace de confirmación a {email}. Ábrelo para activar tu cuenta.
+          <Card className="glass border-none shadow-2xl">
+            <CardHeader className="text-center">
+              <CardTitle className="font-display text-2xl">Revisa tu correo</CardTitle>
+              <CardDescription className="text-base">
+                Enviamos un enlace de confirmación a <span className="font-medium text-foreground">{email}</span>. Ábrelo para activar tu cuenta.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => setEmailSent(false)}>
+              <Button variant="outline" className="w-full h-12 rounded-xl text-base" onClick={() => setEmailSent(false)}>
                 Volver
               </Button>
             </CardContent>
           </Card>
         ) : (
-          <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar sesión</TabsTrigger>
-              <TabsTrigger value="signup">Crear cuenta</TabsTrigger>
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted/50 p-1 mb-6 glass">
+              <TabsTrigger value="login" className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Iniciar sesión</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-lg py-2.5 text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm">Crear cuenta</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
-              <Card>
+              <Card className="glass border-none shadow-2xl">
                 <CardHeader>
-                  <CardTitle>Bienvenido de vuelta</CardTitle>
-                  <CardDescription>Ingresa para ver tus cotizaciones.</CardDescription>
+                  <CardTitle className="font-display text-2xl">Bienvenido de vuelta</CardTitle>
+                  <CardDescription className="text-base">Ingresa para ver tus cotizaciones.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-4" onSubmit={signIn}>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="login-email">Correo</Label>
+                  <form className="space-y-5" onSubmit={signIn}>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email" className="text-sm font-medium text-foreground/80">Correo electrónico</Label>
                       <Input
                         id="login-email"
                         type="email"
@@ -126,10 +132,11 @@ function AuthPage() {
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                         required
+                        className="h-12 rounded-xl border-white/20 bg-white/50 px-4 transition-all focus:bg-white dark:border-white/10 dark:bg-black/20 dark:focus:bg-black/40"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="login-password">Contraseña</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password" className="text-sm font-medium text-foreground/80">Contraseña</Label>
                       <Input
                         id="login-password"
                         type="password"
@@ -137,16 +144,17 @@ function AuthPage() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required
+                        className="h-12 rounded-xl border-white/20 bg-white/50 px-4 transition-all focus:bg-white dark:border-white/10 dark:bg-black/20 dark:focus:bg-black/40"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-                      Entrar
+                    <Button type="submit" className="bg-electric-glow w-full h-12 rounded-xl text-base font-semibold border-none mt-2" disabled={loading}>
+                      {loading ? <Loader2 className="mr-2 size-5 animate-spin" /> : null}
+                      Entrar a mi cuenta
                     </Button>
                     <button
                       type="button"
                       onClick={() => void resetPassword()}
-                      className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+                      className="mt-4 w-full text-center text-sm font-medium text-muted-foreground hover:text-electric-blue transition-colors"
                     >
                       Olvidé mi contraseña
                     </button>
@@ -156,24 +164,25 @@ function AuthPage() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <Card>
+              <Card className="glass border-none shadow-2xl">
                 <CardHeader>
-                  <CardTitle>Crear cuenta</CardTitle>
-                  <CardDescription>Empieza a cotizar en menos de un minuto.</CardDescription>
+                  <CardTitle className="font-display text-2xl">Crea tu cuenta</CardTitle>
+                  <CardDescription className="text-base">Empieza a cotizar en menos de un minuto.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <form className="space-y-4" onSubmit={signUp}>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-name">Nombre</Label>
+                  <form className="space-y-5" onSubmit={signUp}>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name" className="text-sm font-medium text-foreground/80">Nombre completo</Label>
                       <Input
                         id="signup-name"
                         maxLength={120}
                         value={fullName}
                         onChange={(event) => setFullName(event.target.value)}
+                        className="h-12 rounded-xl border-white/20 bg-white/50 px-4 transition-all focus:bg-white dark:border-white/10 dark:bg-black/20 dark:focus:bg-black/40"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-email">Correo</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-sm font-medium text-foreground/80">Correo electrónico</Label>
                       <Input
                         id="signup-email"
                         type="email"
@@ -181,10 +190,11 @@ function AuthPage() {
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                         required
+                        className="h-12 rounded-xl border-white/20 bg-white/50 px-4 transition-all focus:bg-white dark:border-white/10 dark:bg-black/20 dark:focus:bg-black/40"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="signup-password">Contraseña</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-sm font-medium text-foreground/80">Contraseña</Label>
                       <Input
                         id="signup-password"
                         type="password"
@@ -192,11 +202,12 @@ function AuthPage() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required
+                        className="h-12 rounded-xl border-white/20 bg-white/50 px-4 transition-all focus:bg-white dark:border-white/10 dark:bg-black/20 dark:focus:bg-black/40"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
-                      {loading ? <Loader2 className="size-4 animate-spin" /> : null}
-                      Crear cuenta
+                    <Button type="submit" className="bg-electric-glow w-full h-12 rounded-xl text-base font-semibold border-none mt-2" disabled={loading}>
+                      {loading ? <Loader2 className="mr-2 size-5 animate-spin" /> : null}
+                      Crear cuenta ahora
                     </Button>
                   </form>
                 </CardContent>
