@@ -36,5 +36,8 @@ dist-ssr
 .env.*
 !.env.example
 
+# Supabase
+supabase/.temp/
+
 .vercel
 .env*
