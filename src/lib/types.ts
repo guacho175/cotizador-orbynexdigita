@@ -47,7 +47,7 @@ export interface Quote {
   user_id: string;
   client_id: string | null;
   numero: number | null;
-  folio_cliente: number | null;
+  is_archived?: boolean;
   fecha: string;
   validez_dias: number;
   estado: Estado;

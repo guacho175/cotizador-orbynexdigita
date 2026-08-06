@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Copy, Search, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Copy, Search } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
-import { deleteQuote, duplicateQuote } from "@/lib/repo";
+import { archiveQuote, duplicateQuote, restoreQuote } from "@/lib/repo";
 import { formatDate, money, quoteNumber } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,14 +28,16 @@ export const Route = createFileRoute("/_authenticated/cotizaciones/")({
 function QuotesList() {
   const { user } = Route.useRouteContext();
   const [term, setTerm] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
   const quotes = useLiveQuery(() => db.quotes.toArray(), [], []) ?? [];
   const clients = useLiveQuery(() => db.clients.toArray(), [], []) ?? [];
 
   const filtered = quotes
+    .filter((quote) => !!quote.is_archived === showArchived)
     .filter((quote) => {
       if (!term.trim()) return true;
       const cliente = clients.find((c) => c.id === quote.client_id)?.nombre ?? "";
-      const haystack = `${quoteNumber(quote.numero, quote.folio_cliente)} ${cliente} ${quote.estado}`.toLowerCase();
+      const haystack = `${quoteNumber(quote.numero)} ${cliente} ${quote.estado}`.toLowerCase();
       return haystack.includes(term.trim().toLowerCase());
     })
     .sort((a, b) => (b.fecha ?? "").localeCompare(a.fecha ?? ""));
@@ -45,16 +47,25 @@ function QuotesList() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Cotizaciones</h1>
-          <p className="text-sm text-muted-foreground">{quotes.length} en total</p>
+          <p className="text-sm text-muted-foreground">{quotes.filter(q => !!q.is_archived === showArchived).length} en total</p>
         </div>
-        <div className="relative w-full max-w-xs">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Buscar por número o cliente"
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-          />
+        <div className="flex w-full items-center gap-3 sm:w-auto">
+          <div className="relative w-full max-w-xs flex-1 sm:w-auto">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="w-full pl-9"
+              placeholder="Buscar"
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+            />
+          </div>
+          <Button
+            variant={showArchived ? "secondary" : "outline"}
+            onClick={() => setShowArchived(!showArchived)}
+            className="shrink-0"
+          >
+            {showArchived ? "Activas" : "Archivadas"}
+          </Button>
         </div>
       </div>
 
@@ -80,7 +91,7 @@ function QuotesList() {
                     className="min-w-0 flex-1"
                   >
                     <p className="text-sm font-medium">
-                      N° {quoteNumber(quote.numero, quote.folio_cliente)} · {cliente?.nombre ?? "Sin cliente"}
+                      N° {quoteNumber(quote.numero)} · {cliente?.nombre ?? "Sin cliente"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(quote.fecha)} · {money(quote.total)}
@@ -103,14 +114,23 @@ function QuotesList() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    aria-label="Eliminar"
+                    aria-label={showArchived ? "Restaurar" : "Archivar"}
                     onClick={async () => {
-                      if (!confirm("¿Eliminar esta cotización?")) return;
-                      await deleteQuote(quote.id);
-                      toast.success("Cotización eliminada");
+                      if (showArchived) {
+                        await restoreQuote(quote.id);
+                        toast.success("Cotización restaurada");
+                      } else {
+                        if (!confirm("¿Archivar esta cotización?")) return;
+                        await archiveQuote(quote.id);
+                        toast.success("Cotización archivada");
+                      }
                     }}
                   >
-                    <Trash2 className="size-4 text-destructive" />
+                    {showArchived ? (
+                      <ArchiveRestore className="size-4" />
+                    ) : (
+                      <Archive className="size-4 text-muted-foreground" />
+                    )}
                   </Button>
                 </CardContent>
               </Card>

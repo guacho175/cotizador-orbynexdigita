@@ -83,6 +83,7 @@ export function emptyQuote(userId: string, ivaPercent: number): Quote {
     user_id: userId,
     client_id: null,
     numero: null,
+    is_archived: false,
     fecha: today(),
     validez_dias: 15,
     estado: "borrador",
@@ -181,6 +182,36 @@ export async function deleteQuote(id: string): Promise<void> {
     await db.items.bulkDelete(items.map((item) => item.id));
   });
   await enqueue({ entity: "quotes", op: "delete", row_id: id, payload: { id }, base_updated_at: null });
+  kick();
+}
+
+export async function archiveQuote(id: string): Promise<void> {
+  const baseQuote = await db.quotes.get(id);
+  if (!baseQuote) return;
+  const row: Quote = { ...baseQuote, is_archived: true, updated_at: nowIso() };
+  await db.quotes.put(row);
+  await enqueue({
+    entity: "quotes",
+    op: "upsert",
+    row_id: row.id,
+    payload: { ...row },
+    base_updated_at: baseQuote.updated_at ?? null,
+  });
+  kick();
+}
+
+export async function restoreQuote(id: string): Promise<void> {
+  const baseQuote = await db.quotes.get(id);
+  if (!baseQuote) return;
+  const row: Quote = { ...baseQuote, is_archived: false, updated_at: nowIso() };
+  await db.quotes.put(row);
+  await enqueue({
+    entity: "quotes",
+    op: "upsert",
+    row_id: row.id,
+    payload: { ...row },
+    base_updated_at: baseQuote.updated_at ?? null,
+  });
   kick();
 }
 

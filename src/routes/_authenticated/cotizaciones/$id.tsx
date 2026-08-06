@@ -59,7 +59,7 @@ function EditQuote() {
         </Button>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Cotización N° {quoteNumber(data.quote.numero, data.quote.folio_cliente)}
+            Cotización N° {quoteNumber(data.quote.numero)}
           </h1>
           <p className="text-sm text-muted-foreground">Los cambios se guardan y sincronizan automáticamente.</p>
         </div>

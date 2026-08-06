@@ -39,10 +39,10 @@ class CotizaDB extends Dexie {
 
   constructor() {
     super("cotiza-db");
-    this.version(1).stores({
+    this.version(2).stores({
       businesses: "id, user_id",
       clients: "id, user_id, nombre",
-      quotes: "id, user_id, fecha, numero, estado, client_id",
+      quotes: "id, user_id, fecha, numero, estado, client_id, is_archived",
       items: "id, quote_id, user_id, orden",
       outbox: "++seq, entity, row_id",
       conflicts: "++id, entity, row_id, seen",
