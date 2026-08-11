@@ -5,6 +5,9 @@ import {
   View,
   Image,
   StyleSheet,
+  Link,
+  Svg,
+  Rect,
 } from "@react-pdf/renderer";
 import type { Business, Client, Quote, QuoteItem } from "@/lib/types";
 import { formatDate, lineTotal, money, quoteNumber, addDays } from "@/lib/format";
@@ -163,35 +166,58 @@ const styles = StyleSheet.create({
   grandLabel: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 10 },
   grandValue: { color: "#ffffff", fontFamily: "Helvetica-Bold", fontSize: 12 },
 
-  bankBar: {
-    flexDirection: "row",
-    marginTop: 18,
-    gap: 10,
-  },
-  bankCol: {
-    flex: 1,
+  paymentCard: {
+    width: "88%",
+    alignSelf: "center",
     borderWidth: 1,
     borderColor: LINE,
-    borderRadius: 8,
-    padding: 10,
     backgroundColor: "#fafbfc",
+    borderRadius: 8,
+    marginTop: 8,
+    padding: 7,
+    flexDirection: "row",
   },
-  bankTitle: {
-    fontSize: 7.5,
-    color: AMBER,
+  paymentColLeft: { flex: 0.7, paddingRight: 6 },
+  paymentColRight: {
+    flex: 0.3,
+    borderLeftWidth: 1,
+    borderLeftColor: LINE,
+    paddingLeft: 7,
+  },
+  paymentHeader: {
+    fontSize: 6.5,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 4,
-    textTransform: "uppercase",
+    marginBottom: 6,
+    flexDirection: "row",
   },
-  bankText: {
-    fontSize: 7.5,
-    color: MUTED,
+  paymentHeaderNum: { color: AMBER, marginRight: 2 },
+  paymentHeaderText: { color: NAVY },
+  paymentHeaderAccent: { color: AMBER },
+  paymentGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    rowGap: 4,
     marginBottom: 2,
   },
-  bankBold: {
-    fontFamily: "Helvetica-Bold",
-    color: NAVY,
+  paymentField: { width: "50%", paddingRight: 4 },
+  paymentLabel: { fontSize: 5.8, color: MUTED, marginBottom: 1 },
+  paymentValue: { fontSize: 6.7, color: NAVY },
+  paymentValueBold: { fontSize: 6.7, color: NAVY, fontFamily: "Helvetica-Bold" },
+  accountBox: {
+    backgroundColor: "#fff7e6",
+    borderRadius: 5,
+    paddingVertical: 3,
+    paddingHorizontal: 6,
+    marginTop: 2,
+    marginRight: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
+  accountLabel: { fontSize: 6, color: AMBER, fontFamily: "Helvetica-Bold", marginBottom: 1 },
+  accountNumber: { fontSize: 10.5, color: NAVY, fontFamily: "Helvetica-Bold" },
+  emailLabel: { fontSize: 6.2, color: MUTED, marginBottom: 2 },
+  emailLink: { fontSize: 6.8, fontFamily: "Helvetica-Bold", color: NAVY, textDecoration: "none" },
 
   terms: { marginTop: 12, fontSize: 8, color: MUTED, lineHeight: 1.4 },
 
@@ -404,28 +430,55 @@ export function QuoteDocument({ quote, items, business, client, logoDataUrl }: Q
             </View>
 
             {business.banco_nombre || business.banco_numero_cuenta ? (
-              <View style={[styles.bankBar, isCompact && { marginTop: 10 }]}>
-                <View style={styles.bankCol}>
-                  <Text style={styles.bankTitle}>DATOS DE TRANSFERENCIA</Text>
-                  <Text style={styles.bankText}>
-                    <Text style={styles.bankBold}>{business.banco_titular?.toUpperCase() || "—"}</Text>
-                  </Text>
-                  <Text style={styles.bankText}>RUT {business.banco_rut || "—"}</Text>
-                  <Text style={styles.bankText}>
-                    <Text style={styles.bankBold}>{business.banco_nombre?.toUpperCase() || "—"}</Text> - {business.banco_tipo_cuenta?.toUpperCase() || "—"}
-                  </Text>
+              <View style={[styles.paymentCard, isCompact && { marginTop: 6 }]} wrap={false}>
+                <View style={styles.paymentColLeft}>
+                  <View style={styles.paymentHeader}>
+                    <Text style={styles.paymentHeaderAccent}>CÓMO PAGAR · </Text>
+                    <Text style={styles.paymentHeaderNum}>1</Text>
+                    <Text style={styles.paymentHeaderText}>TRANSFIERE</Text>
+                  </View>
+                  <View style={styles.paymentGrid}>
+                    <View style={styles.paymentField}>
+                      <Text style={styles.paymentLabel}>Titular</Text>
+                      <Text style={styles.paymentValueBold}>{business.banco_titular || "—"}</Text>
+                    </View>
+                    <View style={styles.paymentField}>
+                      <Text style={styles.paymentLabel}>RUT</Text>
+                      <Text style={styles.paymentValue}>{business.banco_rut || "—"}</Text>
+                    </View>
+                    <View style={styles.paymentField}>
+                      <Text style={styles.paymentLabel}>Banco</Text>
+                      <Text style={styles.paymentValueBold}>{business.banco_nombre || "—"}</Text>
+                    </View>
+                    <View style={styles.paymentField}>
+                      <Text style={styles.paymentLabel}>Tipo</Text>
+                      <Text style={styles.paymentValue}>{business.banco_tipo_cuenta || "—"}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.accountBox}>
+                    <View>
+                      <Text style={styles.accountLabel}>N° DE CUENTA</Text>
+                      <Text style={styles.accountNumber}>{business.banco_numero_cuenta || "—"}</Text>
+                    </View>
+                    <Svg width="8" height="8" viewBox="0 0 8 8">
+                      <Rect x="1" y="2.5" width="4.5" height="4.5" rx="0.5" fill="none" stroke={MUTED} strokeWidth="0.7" />
+                      <Rect x="2.5" y="1" width="4.5" height="4.5" rx="0.5" fill="none" stroke={MUTED} strokeWidth="0.7" />
+                    </Svg>
+                  </View>
                 </View>
-                <View style={styles.bankCol}>
-                  <Text style={styles.bankTitle}>Confirmación de pago</Text>
-                  <Text style={styles.bankText}>
-                    N° de cuenta: <Text style={styles.bankBold}>{business.banco_numero_cuenta || "—"}</Text>
-                  </Text>
-                  <Text style={styles.bankText}>
-                    Email: {business.banco_email || "—"}
-                  </Text>
-                  <Text style={[styles.bankText, { marginTop: 4, lineHeight: 1.3 }]}>
-                    Una vez recibido el comprobante de transferencia, se dará curso a la solicitud.
-                  </Text>
+                <View style={styles.paymentColRight}>
+                  <View style={styles.paymentHeader}>
+                    <Text style={styles.paymentHeaderNum}>2</Text>
+                    <Text style={styles.paymentHeaderText}>ENVÍA EL COMPROBANTE</Text>
+                  </View>
+                  <Text style={styles.emailLabel}>Envía el comprobante a</Text>
+                  {business.banco_email ? (
+                    <Link src={`mailto:${business.banco_email}`} style={styles.emailLink}>
+                      {business.banco_email}
+                    </Link>
+                  ) : (
+                    <Text style={styles.paymentValue}>—</Text>
+                  )}
                 </View>
               </View>
             ) : null}
