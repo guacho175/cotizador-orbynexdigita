@@ -29,3 +29,14 @@ El PDF se genera dinámicamente en tiempo real en el cliente/servidor mediante `
 La integración con AI existe puramente como un *asistente de redacción* para mejorar descripciones. 
 - Los cálculos matemáticos (subtotal, IVA, total) **nunca** pasan por la IA para evitar alucinaciones.
 - La `GEMINI_API_KEY` se mantiene estrictamente en el entorno backend de Vercel y es invocada mediante server functions.
+
+### 5. Autenticación y Comportamiento Offline
+- **Estado Compartido**: La aplicación utiliza un estado de autenticación centralizado (`src/lib/auth-state.ts`) que se sincroniza mediante `onAuthStateChange`. Esto previene llamadas redundantes a `/auth/v1/user` durante la navegación interna.
+- **RLS y Seguridad**: El Role Level Security (RLS) en Supabase es la barrera final de acceso. El cliente gestiona la sesión para UI, pero la seguridad de los datos depende enteramente del backend y RLS.
+- **Offline-First**: La navegación y persistencia local no expulsan al usuario por errores de red temporales, ya que la sesión depende del token local y la caché de IndexedDB.
+
+### 6. Sincronización y Listado de Clientes (Local)
+- **Datos y Aislamiento**: Las colecciones locales en IndexedDB (Dexie) están estrictamente particionadas y filtradas por `user_id`. Nunca se mezclan datos entre diferentes usuarios en un mismo navegador.
+- **Búsqueda y Paginación Local**: La tabla de clientes opera de manera local para maximizar el rendimiento. Permite búsqueda rápida insensible a mayúsculas y acentos (usando normalización NFD) y paginación en el cliente (bloques de 50 registros). 
+- **Ordenación Robusta**: Se emplea `Intl.Collator("es-CL")` para garantizar un orden alfabético correcto y estable, desempatando por ID.
+- **Sincronización (Estado Actual)**: Actualmente se realiza una sincronización completa, ideal para carteras de hasta 1.000 clientes. Las fases futuras (por ej., paginación remota, tombstones para eliminaciones, y actualizaciones incrementales con `updated_at`) están planeadas para escalar más allá de este volumen.
