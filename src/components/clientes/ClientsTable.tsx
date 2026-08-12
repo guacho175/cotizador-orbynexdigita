@@ -35,11 +35,11 @@ export function ClientsTable({ clients, isLoading, onEdit, onDelete }: ClientsTa
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border/40 hover:bg-transparent">
-              <TableHead className="w-[300px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre o razón social</TableHead>
-              <TableHead className="w-[150px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">RUT</TableHead>
-              <TableHead className="w-[200px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Persona de contacto</TableHead>
-              <TableHead className="w-[250px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Correo y teléfono</TableHead>
-              <TableHead className="w-[80px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Acciones</TableHead>
+              <TableHead className="w-[30%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre o razón social</TableHead>
+              <TableHead className="w-[15%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">RUT</TableHead>
+              <TableHead className="w-[20%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Persona de contacto</TableHead>
+              <TableHead className="w-[25%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Correo y teléfono</TableHead>
+              <TableHead className="w-[10%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -63,11 +63,11 @@ export function ClientsTable({ clients, isLoading, onEdit, onDelete }: ClientsTa
       <Table>
         <TableHeader>
           <TableRow className="border-b border-border/40 hover:bg-transparent">
-            <TableHead className="w-[300px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre o razón social</TableHead>
-            <TableHead className="w-[150px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">RUT</TableHead>
-            <TableHead className="w-[200px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Persona de contacto</TableHead>
-            <TableHead className="w-[250px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Correo y teléfono</TableHead>
-            <TableHead className="w-[80px] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Acciones</TableHead>
+            <TableHead className="w-[30%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre o razón social</TableHead>
+            <TableHead className="w-[15%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">RUT</TableHead>
+            <TableHead className="w-[20%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Persona de contacto</TableHead>
+            <TableHead className="w-[25%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider">Correo y teléfono</TableHead>
+            <TableHead className="w-[10%] h-11 px-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
