@@ -16,6 +16,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedNegocioRouteImport } from './routes/_authenticated/negocio'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedCotizacionesIndexRouteImport } from './routes/_authenticated/cotizaciones/index'
 import { Route as AuthenticatedCotizacionesIdRouteImport } from './routes/_authenticated/cotizaciones/$id'
 import { Route as AuthenticatedCotizacionesNuevaRouteImport } from './routes/_authenticated/cotizaciones/nueva'
@@ -54,6 +55,11 @@ const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
   path: '/panel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCotizacionesIndexRoute =
   AuthenticatedCotizacionesIndexRouteImport.update({
     id: '/cotizaciones/',
@@ -80,6 +86,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/negocio': typeof AuthenticatedNegocioRoute
   '/panel': typeof AuthenticatedPanelRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
   '/cotizaciones/': typeof AuthenticatedCotizacionesIndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/negocio': typeof AuthenticatedNegocioRoute
   '/panel': typeof AuthenticatedPanelRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
   '/cotizaciones': typeof AuthenticatedCotizacionesIndexRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/negocio': typeof AuthenticatedNegocioRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/cotizaciones/$id': typeof AuthenticatedCotizacionesIdRoute
   '/_authenticated/cotizaciones/nueva': typeof AuthenticatedCotizacionesNuevaRoute
   '/_authenticated/cotizaciones/': typeof AuthenticatedCotizacionesIndexRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/negocio'
     | '/panel'
+    | '/perfil'
     | '/cotizaciones/$id'
     | '/cotizaciones/nueva'
     | '/cotizaciones/'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/negocio'
     | '/panel'
+    | '/perfil'
     | '/cotizaciones/$id'
     | '/cotizaciones/nueva'
     | '/cotizaciones'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/negocio'
     | '/_authenticated/panel'
+    | '/_authenticated/perfil'
     | '/_authenticated/cotizaciones/$id'
     | '/_authenticated/cotizaciones/nueva'
     | '/_authenticated/cotizaciones/'
@@ -203,6 +215,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPanelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cotizaciones/': {
       id: '/_authenticated/cotizaciones/'
       path: '/cotizaciones'
@@ -231,6 +250,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedNegocioRoute: typeof AuthenticatedNegocioRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedCotizacionesIdRoute: typeof AuthenticatedCotizacionesIdRoute
   AuthenticatedCotizacionesNuevaRoute: typeof AuthenticatedCotizacionesNuevaRoute
   AuthenticatedCotizacionesIndexRoute: typeof AuthenticatedCotizacionesIndexRoute
@@ -240,6 +260,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedNegocioRoute: AuthenticatedNegocioRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedCotizacionesIdRoute: AuthenticatedCotizacionesIdRoute,
   AuthenticatedCotizacionesNuevaRoute: AuthenticatedCotizacionesNuevaRoute,
   AuthenticatedCotizacionesIndexRoute: AuthenticatedCotizacionesIndexRoute,

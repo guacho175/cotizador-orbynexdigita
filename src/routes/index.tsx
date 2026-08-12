@@ -67,7 +67,7 @@ function Landing() {
 
       <PublicHeader />
 
-      <main className="relative z-10 pt-24 pb-20">
+      <main className="relative z-10 pt-28 pb-20">
         <section className="mx-auto max-w-7xl px-6 py-20 text-center md:py-32">
           <div className="mx-auto max-w-3xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-electric-blue/30 bg-electric-blue/10 px-4 py-1.5 backdrop-blur-md">

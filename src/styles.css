@@ -39,6 +39,12 @@
   --color-deep-navy: #001B44;
   --color-neon-purple: #BD00FF;
 
+  /* Orbynex Corporate Design Tokens */
+  --color-deep-space: #071A3D;
+  --color-electric-cyan: #00D4FF;
+  --color-orbynex-blue: #1463FF;
+  --color-magenta-pulse: #D946EF;
+
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
@@ -153,5 +159,28 @@
 
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 97, 255, 0.2);
+  }
+}
+
+/* Corporate-style CTA button — gradient with magenta glow */
+@utility btn-orbynex-primary {
+  background: linear-gradient(135deg, var(--color-orbynex-blue) 0%, var(--color-magenta-pulse) 100%);
+  box-shadow: 0 18px 52px rgb(217 70 239 / 0.22);
+  color: white;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 22px 60px rgb(217 70 239 / 0.32);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-electric-cyan);
+    outline-offset: 2px;
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 12px 36px rgb(217 70 239 / 0.18);
   }
 }
