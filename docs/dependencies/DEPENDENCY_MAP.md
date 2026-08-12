@@ -10,14 +10,10 @@
 
 | Categoría | Cantidad | Porcentaje |
 |---|---|---|
-| Uso directo confirmado (A) | 25 | 35% |
-| Infraestructura / Build (B) | 16 | 23% |
-| Uso indirecto confirmado (C) | 7 | 10% |
-| **Total con uso real** | **48** | **68%** |
-| Wrappers sin consumidores (D) | 18 | 25% |
-| Sin referencias (E) | 2 | 3% |
-| Indeterminadas (F) | 3 | 4% |
-| **Total** | **71** | 100% |
+| Uso directo confirmado (A) | 25 | 52% |
+| Infraestructura / Build (B) | 16 | 33% |
+| Uso indirecto confirmado (C) | 7 | 15% |
+| **Total con uso real** | **48** | **100%** |
 
 ---
 
@@ -203,7 +199,7 @@ Estos paquetes Radix UI se importan en `src/components/ui/` y sus wrappers SÍ s
 
 ## Componentes UI Activos
 
-De los 46 componentes en `src/components/ui/`, los siguientes **17** tienen consumidores activos:
+De los 46 componentes originales en `src/components/ui/`, los siguientes **15** tienen consumidores activos (los demás fueron eliminados):
 
 | Componente | Consumidores principales |
 |---|---|
@@ -222,8 +218,6 @@ De los 46 componentes en `src/components/ui/`, los siguientes **17** tienen cons
 | `badge.tsx` | `cotizaciones/index`, `panel` |
 | `skeleton.tsx` | `ClientsTable` |
 | `sonner.tsx` | `__root.tsx` |
-| `separator.tsx` | Solo en `sidebar.tsx` (sidebar NO se usa actualmente) |
-| `tooltip.tsx` | Solo en `sidebar.tsx` (sidebar NO se usa actualmente) |
 
 ---
 
