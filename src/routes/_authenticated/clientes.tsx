@@ -1,49 +1,19 @@
 import { useState, useDeferredValue, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { deleteClient, emptyClient, saveClient } from "@/lib/repo";
 import type { Client } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+
 import { sortClients, filterClients, paginateClients } from "./clientes-utils";
+import { ClientSearch } from "@/components/clientes/ClientSearch";
+import { ClientsTable } from "@/components/clientes/ClientsTable";
+import { ClientMobileCard } from "@/components/clientes/ClientMobileCard";
+import { ClientFormDialog } from "@/components/clientes/ClientFormDialog";
+import { ClientDeleteDialog } from "@/components/clientes/ClientDeleteDialog";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
@@ -59,18 +29,6 @@ export const Route = createFileRoute("/_authenticated/clientes")({
   component: ClientsPage,
 });
 
-const clientSchema = z.object({
-  nombre: z.string().trim().min(2, "El nombre es obligatorio").max(160),
-  rut: z.string().trim().max(20),
-  contacto: z.string().trim().max(120),
-  email: z.union([z.string().trim().email("Correo inválido").max(255), z.literal("")]),
-  telefono: z.string().trim().max(40),
-  direccion: z.string().trim().max(240),
-  notas: z.string().trim().max(600),
-});
-
-type FormErrors = Partial<Record<keyof z.infer<typeof clientSchema>, string>>;
-
 function ClientsPage() {
   const { user } = Route.useRouteContext();
   const rawClients = useLiveQuery(() => db.clients.where("user_id").equals(user.id).toArray(), [user.id]);
@@ -80,7 +38,7 @@ function ClientsPage() {
   const [page, setPage] = useState(0);
   
   const [draft, setDraft] = useState<Client | null>(null);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [isEditing, setIsEditing] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   useEffect(() => {
@@ -96,30 +54,19 @@ function ClientsPage() {
   const paginated = paginateClients(filtered, page, PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSaveClient(data: Partial<Client>) {
     if (!draft) return;
-    const parsed = clientSchema.safeParse(draft);
-    if (!parsed.success) {
-      const fieldErrors: FormErrors = {};
-      parsed.error.issues.forEach(issue => {
-        const path = issue.path[0] as keyof FormErrors;
-        if (!fieldErrors[path]) fieldErrors[path] = issue.message;
-      });
-      setErrors(fieldErrors);
-      return;
-    }
-    setErrors({});
     try {
-      await saveClient({ ...draft, ...parsed.data });
+      await saveClient({ ...draft, ...data });
       setDraft(null);
+      setIsEditing(false);
       toast.success("Cliente guardado correctamente");
     } catch (err) {
       toast.error("Error al guardar el cliente");
     }
   }
 
-  async function handleDelete() {
+  async function handleDeleteConfirm() {
     if (!clientToDelete) return;
     try {
       await deleteClient(clientToDelete.id);
@@ -131,117 +78,72 @@ function ClientsPage() {
     }
   }
 
+  const handleNew = () => {
+    setDraft(emptyClient(user.id));
+    setIsEditing(false);
+  };
+
+  const handleEdit = (client: Client) => {
+    setDraft(client);
+    setIsEditing(true);
+  };
+
+  const handleDelete = (client: Client) => {
+    setClientToDelete(client);
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="space-y-6 pb-10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
-          <p className="text-sm text-muted-foreground">{rawClients?.length ?? 0} registrados</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Clientes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {rawClients?.length === 1 ? "1 cliente registrado" : `${rawClients?.length ?? 0} clientes registrados`}
+          </p>
         </div>
-        <div className="flex w-full max-w-md gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Buscar cliente"
-              value={term}
-              onChange={(event) => setTerm(event.target.value)}
-            />
-          </div>
-          <Button onClick={() => { setDraft(emptyClient(user.id)); setErrors({}); }}>
-            <Plus className="size-4 mr-2" />
-            Nuevo
-          </Button>
-        </div>
+        <ClientSearch term={term} setTerm={setTerm} onNew={handleNew} />
       </div>
 
       {isLoading ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Cargando clientes...
-          </CardContent>
-        </Card>
+        <ClientsTable clients={[]} isLoading={true} onEdit={handleEdit} onDelete={handleDelete} />
       ) : rawClients.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Aún no hay clientes registrados en la cartera.
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center border border-border/50 rounded-xl bg-card/50 shadow-sm backdrop-blur-sm">
+          <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Users className="size-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium text-foreground">Aún no tienes clientes registrados</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+            Crea tu primer cliente para comenzar a generar cotizaciones y gestionar tu cartera de forma profesional.
+          </p>
+          <Button onClick={handleNew} className="mt-6 shadow-sm rounded-lg bg-electric-glow">
+            Crear tu primer cliente
+          </Button>
+        </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No se encontraron clientes para "{deferredTerm}".
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center border border-border/50 rounded-xl bg-card/50 shadow-sm backdrop-blur-sm">
+          <Search className="size-10 text-muted-foreground/30 mb-3" />
+          <p className="text-foreground font-medium">No encontramos clientes para "{deferredTerm}"</p>
+          <p className="text-sm text-muted-foreground mt-1">Intenta con otros términos de búsqueda.</p>
+          <Button variant="outline" onClick={() => setTerm("")} className="mt-4 rounded-lg">
+            Limpiar búsqueda
+          </Button>
+        </div>
       ) : (
         <div className="space-y-4">
-          <div className="rounded-md border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre o razón social</TableHead>
-                  <TableHead className="hidden md:table-cell">RUT</TableHead>
-                  <TableHead className="hidden md:table-cell">Persona de contacto</TableHead>
-                  <TableHead className="hidden md:table-cell">Correo y teléfono</TableHead>
-                  <TableHead className="w-[80px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginated.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell>
-                      <button 
-                        type="button" 
-                        onClick={() => { setDraft(client); setErrors({}); }}
-                        className="font-medium text-left hover:underline focus:outline-none"
-                      >
-                        {client.nombre}
-                      </button>
-                      <div className="md:hidden mt-1 flex flex-col gap-0.5 text-xs text-muted-foreground">
-                        {client.rut && <span>RUT: {client.rut}</span>}
-                        {client.contacto && <span>Contacto: {client.contacto}</span>}
-                        {(client.email || client.telefono) && <span>{[client.email, client.telefono].filter(Boolean).join(" · ")}</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">{client.rut || "-"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{client.contacto || "-"}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex flex-col gap-0.5 text-sm">
-                        {client.email && <span>{client.email}</span>}
-                        {client.telefono && <span>{client.telefono}</span>}
-                        {!client.email && !client.telefono && "-"}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="size-4" />
-                            <span className="sr-only">Abrir menú</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setDraft(client); setErrors({}); }}>
-                            <Edit className="size-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => setClientToDelete(client)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="size-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <ClientsTable clients={paginated} isLoading={false} onEdit={handleEdit} onDelete={handleDelete} />
+          
+          <div className="grid gap-4 md:hidden">
+            {paginated.map(client => (
+              <ClientMobileCard 
+                key={client.id} 
+                client={client} 
+                onEdit={handleEdit} 
+                onDelete={handleDelete} 
+              />
+            ))}
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2">
             <p className="text-sm text-muted-foreground">
               Mostrando {page * PAGE_SIZE + 1} a {Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length} clientes
             </p>
@@ -249,6 +151,7 @@ function ClientsPage() {
               <Button
                 variant="outline"
                 size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}
               >
@@ -257,6 +160,7 @@ function ClientsPage() {
               <Button
                 variant="outline"
                 size="icon"
+                className="h-8 w-8 rounded-lg"
                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
               >
@@ -267,77 +171,19 @@ function ClientsPage() {
         </div>
       )}
 
-      <Dialog open={draft !== null} onOpenChange={(open) => !open && setDraft(null)}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{draft && rawClients?.some((c) => c.id === draft.id) ? "Editar cliente" : "Nuevo cliente"}</DialogTitle>
-          </DialogHeader>
-          {draft ? (
-            <form onSubmit={submit} className="grid gap-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(
-                  [
-                    ["nombre", "Nombre o razón social"],
-                    ["rut", "RUT"],
-                    ["contacto", "Persona de contacto"],
-                    ["email", "Correo"],
-                    ["telefono", "Teléfono"],
-                    ["direccion", "Dirección"],
-                  ] as const
-                ).map(([field, label]) => (
-                  <div key={field} className="space-y-1.5">
-                    <Label htmlFor={`client-${field}`}>{label}</Label>
-                    <Input
-                      id={`client-${field}`}
-                      value={draft[field]}
-                      onChange={(event) => setDraft({ ...draft, [field]: event.target.value })}
-                    />
-                    {errors[field] && (
-                      <p className="text-xs text-destructive">{errors[field]}</p>
-                    )}
-                  </div>
-                ))}
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="client-notas">Notas</Label>
-                  <Textarea
-                    id="client-notas"
-                    rows={3}
-                    value={draft.notas}
-                    onChange={(event) => setDraft({ ...draft, notas: event.target.value })}
-                  />
-                  {errors.notas && (
-                    <p className="text-xs text-destructive">{errors.notas}</p>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDraft(null)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">Guardar</Button>
-              </DialogFooter>
-            </form>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      <ClientFormDialog 
+        draft={draft} 
+        isEditing={isEditing} 
+        onClose={() => setDraft(null)} 
+        onSave={handleSaveClient} 
+      />
 
-      <AlertDialog open={clientToDelete !== null} onOpenChange={(open) => !open && setClientToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás completamente seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esto eliminará permanentemente al cliente <strong>{clientToDelete?.nombre}</strong>.
-              Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ClientDeleteDialog 
+        client={clientToDelete} 
+        onClose={() => setClientToDelete(null)} 
+        onConfirm={handleDeleteConfirm} 
+      />
     </div>
   );
 }
+
