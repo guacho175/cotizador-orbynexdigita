@@ -7,14 +7,64 @@ const LOCAL_ONLY: Record<string, string[]> = {
   businesses: ["logo_data"],
 };
 
+/** Fields owned by the database and never accepted from normal upsert payloads. */
+const SERVER_MANAGED: Partial<Record<Entity, string[]>> = {
+  businesses: ["next_quote_number"],
+  quotes: ["numero", "pdf_template_version", "issued_at"],
+};
+
+let flushPromise: Promise<{ pushed: number; failed: number }> | null = null;
+
 function stripLocalOnly(entity: Entity, row: Record<string, unknown>) {
   const clean = { ...row };
   for (const field of LOCAL_ONLY[entity] ?? []) delete clean[field];
+  for (const field of SERVER_MANAGED[entity] ?? []) delete clean[field];
+  if (entity === "quotes" && (row.numero != null || row.issued_at != null)) {
+    // Once issued, the resolved key is frozen alongside its version.
+    delete clean.pdf_template_key;
+  }
   return clean;
 }
 
 export async function enqueue(item: Omit<OutboxItem, "seq" | "created_at">) {
-  await db.outbox.add({ ...item, created_at: new Date().toISOString() });
+  await db.transaction("rw", db.outbox, async () => {
+    // Never mutate a queue row that pushItem may already be sending. A new row
+    // preserves edits made while a network flush is in flight.
+    if (flushPromise) {
+      await db.outbox.add({ ...item, created_at: new Date().toISOString() });
+      return;
+    }
+
+    const matches = await db.outbox
+      .where("entity")
+      .equals(item.entity)
+      .and((candidate) => candidate.row_id === item.row_id)
+      .sortBy("seq");
+
+    const oldest = matches[0];
+    const canCoalesce =
+      matches.length > 0 && matches.every((candidate) => candidate.op === item.op);
+    if (!oldest?.seq || !canCoalesce) {
+      await db.outbox.add({ ...item, created_at: new Date().toISOString() });
+      return;
+    }
+
+    // Keep the original queue position and conflict base, but collapse the
+    // payload to the latest local state for this exact entity/row pair. An
+    // upsert/delete transition stays ordered because dependent rows may sit
+    // between both operations.
+    await db.outbox.update(oldest.seq, {
+      op: item.op,
+      payload: item.payload,
+      base_updated_at: oldest.base_updated_at,
+    });
+
+    const duplicateSequences = matches
+      .slice(1)
+      .map((candidate) => candidate.seq)
+      .filter((seq): seq is number => typeof seq === "number");
+    if (duplicateSequences.length) await db.outbox.bulkDelete(duplicateSequences);
+  });
 }
 
 export function isOnline(): boolean {
@@ -47,7 +97,7 @@ export async function pullAll(userId: string): Promise<void> {
   const businessesToPut = await Promise.all(
     (businesses.data ?? []).map(async (row) => {
       const localBiz = localBusinesses.find((b) => b.id === row.id);
-      
+
       let currentLogoData = localBiz?.logo_data ?? null;
 
       // Si no tenemos logo local o si el path del logo en el servidor es distinto al que teníamos
@@ -68,11 +118,16 @@ export async function pullAll(userId: string): Promise<void> {
       }
 
       return { ...(row as unknown as Business), logo_data: currentLogoData || null };
-    })
+    }),
   );
 
   await db.transaction("rw", [db.businesses, db.clients, db.quotes, db.items], async () => {
-    await Promise.all([db.businesses.clear(), db.clients.clear(), db.quotes.clear(), db.items.clear()]);
+    await Promise.all([
+      db.businesses.clear(),
+      db.clients.clear(),
+      db.quotes.clear(),
+      db.items.clear(),
+    ]);
     await db.businesses.bulkPut(businessesToPut);
     await db.clients.bulkPut((clients.data ?? []) as unknown as Client[]);
     await db.quotes.bulkPut((quotes.data ?? []) as unknown as Quote[]);
@@ -133,7 +188,10 @@ async function pushItem(item: OutboxItem): Promise<void> {
     const saved = data as Record<string, unknown>;
     if (item.entity === "businesses") {
       const local = await db.businesses.get(item.row_id);
-      await db.businesses.put({ ...(saved as unknown as Business), logo_data: local?.logo_data ?? null });
+      await db.businesses.put({
+        ...(saved as unknown as Business),
+        logo_data: local?.logo_data ?? null,
+      });
     } else if (item.entity === "clients") {
       await db.clients.put(saved as unknown as Client);
     } else if (item.entity === "quotes") {
@@ -142,62 +200,84 @@ async function pushItem(item: OutboxItem): Promise<void> {
       await db.items.put(saved as unknown as QuoteItem);
     }
   }
-
-  // Correlative numbering is assigned by the database, never offline.
-  if (item.entity === "quotes" && (item.payload as { numero?: number | null }).numero == null) {
-    const { data: numero, error: rpcError } = await supabase.rpc("assign_quote_number", {
-      _quote_id: item.row_id,
-    });
-    if (!rpcError && typeof numero === "number") {
-      await db.quotes.update(item.row_id, { numero });
-    }
-  }
 }
 
-let flushing = false;
-
-export async function flushOutbox(): Promise<{ pushed: number; failed: number }> {
-  if (flushing || !isOnline()) return { pushed: 0, failed: 0 };
+async function runFlushOutbox(): Promise<{ pushed: number; failed: number }> {
+  if (!isOnline()) return { pushed: 0, failed: 0 };
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) return { pushed: 0, failed: 0 };
 
-  flushing = true;
   let pushed = 0;
   let failed = 0;
-  try {
-    // Sequential, ordered by insertion so dependent writes stay consistent.
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const next = await db.outbox.orderBy("seq").first();
-      if (!next) break;
-      try {
-        await pushItem(next);
-        await db.outbox.delete(next.seq!);
-        pushed += 1;
-      } catch (error) {
-        console.error("[sync] push failed", next.entity, error);
-        
-        // Identify if it is an active rejection from the server (PostgrestError)
-        // vs a network error (like TypeError: Failed to fetch).
-        // If it's a server error, the request reached the DB but was rejected (e.g. constraints).
-        const isPostgrestError = typeof error === 'object' && error !== null && 'code' in error;
-        
-        if (isPostgrestError) {
-          console.warn(`[sync] Unrecoverable server error for ${next.entity}:${next.row_id}. Removing from queue to prevent head-of-line blocking.`);
-          await db.outbox.delete(next.seq!);
-          failed += 1;
-          continue; // Move to the next item instead of blocking the entire queue
-        }
-
-        failed += 1;
-        break; // Network error or unknown retriable error, break the loop
-      }
+  // Sequential, ordered by insertion so dependent writes stay consistent.
+  while (true) {
+    const next = await db.outbox.orderBy("seq").first();
+    if (!next) break;
+    try {
+      await pushItem(next);
+      await db.outbox.delete(next.seq!);
+      pushed += 1;
+    } catch (error) {
+      console.error("[sync] push failed", next.entity, error);
+      // Keep rejected changes in the outbox. Silently deleting them loses user
+      // data and can let issuance continue with an older server copy.
+      failed += 1;
+      break;
     }
-    if (pushed > 0) await setMeta("last_push_at", new Date().toISOString());
-  } finally {
-    flushing = false;
   }
+  if (pushed > 0) await setMeta("last_push_at", new Date().toISOString());
   return { pushed, failed };
+}
+
+export function flushOutbox(): Promise<{ pushed: number; failed: number }> {
+  if (flushPromise) return flushPromise;
+  flushPromise = runFlushOutbox().finally(() => {
+    flushPromise = null;
+  });
+  return flushPromise;
+}
+
+/**
+ * Flushes the complete local draft before asking the transactional RPC to
+ * assign its permanent number and freeze its resolved template.
+ */
+export async function finalizeQuote(quoteId: string): Promise<Quote> {
+  if (!isOnline()) {
+    const localQuote = await db.quotes.get(quoteId);
+    if (localQuote?.numero != null) return localQuote;
+    throw new Error("Necesitas conexión para emitir y numerar la cotización.");
+  }
+
+  const result = await flushOutbox();
+  if (result.failed > 0 || (await db.outbox.count()) > 0) {
+    throw new Error("No se pudo sincronizar el borrador antes de emitir la cotización.");
+  }
+
+  const { data: assignedNumber, error: rpcError } = await supabase.rpc("assign_quote_number", {
+    _quote_id: quoteId,
+  });
+  if (rpcError) {
+    throw new Error(`No se pudo emitir la cotización: ${rpcError.message}`);
+  }
+  if (typeof assignedNumber !== "number") {
+    throw new Error("La base de datos no devolvió un número de cotización válido.");
+  }
+
+  const { data: remoteQuote, error: quoteError } = await supabase
+    .from("quotes")
+    .select("*")
+    .eq("id", quoteId)
+    .single();
+  if (quoteError) {
+    throw new Error(
+      `La cotización fue numerada, pero no se pudo actualizar localmente: ${quoteError.message}`,
+    );
+  }
+  if (!remoteQuote) throw new Error("No se pudo recuperar la cotización emitida.");
+
+  const issued = remoteQuote as unknown as Quote;
+  await db.quotes.put(issued);
+  return issued;
 }
 
 /* -------------------------------------------------------------- lifecycle */

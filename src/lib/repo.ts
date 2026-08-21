@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { enqueue, flushOutbox } from "./sync";
+import { enqueue, finalizeQuote, flushOutbox } from "./sync";
 import type { Business, Client, Quote, QuoteItem } from "./types";
 import { computeTotals, lineTotal, today } from "./format";
 
@@ -24,9 +24,14 @@ export async function getBusiness(userId: string): Promise<Business | undefined>
   return db.businesses.where("user_id").equals(userId).first();
 }
 
-export async function saveBusiness(business: Business): Promise<void> {
+export async function saveBusiness(business: Business): Promise<Business> {
   const base = await db.businesses.get(business.id);
-  const row: Business = { ...business, updated_at: nowIso() };
+  const row: Business = {
+    ...business,
+    next_quote_number: base?.next_quote_number ?? 200,
+    pdf_template_key: business.pdf_template_key || base?.pdf_template_key || "standard-v1",
+    updated_at: nowIso(),
+  };
   await db.businesses.put(row);
   await enqueue({
     entity: "businesses",
@@ -36,6 +41,7 @@ export async function saveBusiness(business: Business): Promise<void> {
     base_updated_at: base?.updated_at ?? null,
   });
   kick();
+  return row;
 }
 
 /* ---------------------------------------------------------------- clients */
@@ -51,6 +57,7 @@ export function emptyClient(userId: string): Client {
     telefono: "",
     direccion: "",
     notas: "",
+    pdf_template_key: null,
   };
 }
 
@@ -71,7 +78,13 @@ export async function saveClient(client: Client): Promise<Client> {
 
 export async function deleteClient(id: string): Promise<void> {
   await db.clients.delete(id);
-  await enqueue({ entity: "clients", op: "delete", row_id: id, payload: { id }, base_updated_at: null });
+  await enqueue({
+    entity: "clients",
+    op: "delete",
+    row_id: id,
+    payload: { id },
+    base_updated_at: null,
+  });
   kick();
 }
 
@@ -83,6 +96,9 @@ export function emptyQuote(userId: string, ivaPercent: number): Quote {
     user_id: userId,
     client_id: null,
     numero: null,
+    pdf_template_key: null,
+    pdf_template_version: null,
+    issued_at: null,
     is_archived: false,
     fecha: today(),
     validez_dias: 15,
@@ -122,6 +138,15 @@ export async function saveQuote(quote: Quote, items: QuoteItem[]): Promise<Quote
   const row: Quote = {
     ...quote,
     ...totals,
+    numero: baseQuote?.numero ?? quote.numero,
+    pdf_template_key:
+      baseQuote?.numero != null || baseQuote?.issued_at
+        ? baseQuote.pdf_template_key
+        : quote.pdf_template_key,
+    pdf_template_version: baseQuote?.pdf_template_version ?? quote.pdf_template_version,
+    issued_at: baseQuote?.issued_at ?? quote.issued_at,
+    snapshot_negocio: baseQuote?.issued_at ? baseQuote.snapshot_negocio : quote.snapshot_negocio,
+    snapshot_cliente: baseQuote?.issued_at ? baseQuote.snapshot_cliente : quote.snapshot_cliente,
     updated_at: nowIso(),
     created_at: baseQuote?.created_at ?? nowIso(),
   };
@@ -175,13 +200,27 @@ export async function saveQuote(quote: Quote, items: QuoteItem[]): Promise<Quote
   return row;
 }
 
+/**
+ * Assigns the permanent folio and freezes the resolved PDF template.
+ * This is deliberately separate from saveQuote so autosave never consumes a folio.
+ */
+export async function issueQuote(id: string): Promise<Quote> {
+  return finalizeQuote(id);
+}
+
 export async function deleteQuote(id: string): Promise<void> {
   const items = await getQuoteItems(id);
   await db.transaction("rw", [db.quotes, db.items], async () => {
     await db.quotes.delete(id);
     await db.items.bulkDelete(items.map((item) => item.id));
   });
-  await enqueue({ entity: "quotes", op: "delete", row_id: id, payload: { id }, base_updated_at: null });
+  await enqueue({
+    entity: "quotes",
+    op: "delete",
+    row_id: id,
+    payload: { id },
+    base_updated_at: null,
+  });
   kick();
 }
 
@@ -223,6 +262,9 @@ export async function duplicateQuote(id: string, userId: string): Promise<string
     ...source,
     id: uuid(),
     numero: null,
+    pdf_template_key: null,
+    pdf_template_version: null,
+    issued_at: null,
     estado: "borrador",
     fecha: today(),
     created_at: undefined,

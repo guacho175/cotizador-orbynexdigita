@@ -10,6 +10,8 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/routes/_authenticated/clientes.test.ts src/components/quotes/quote-list-utils.test.ts",
     "format": "prettier --write ."
   },
   "dependencies": {

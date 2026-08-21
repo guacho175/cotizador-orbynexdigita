@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "../../generate_test_pdfs.tsx",
+    "../../test-pdf.tsx",
+    "./fixtures.ts",
+    "../../src/components/pdf/**/*.ts",
+    "../../src/components/pdf/**/*.tsx",
+    "../../src/lib/format.ts",
+    "../../src/lib/pdf.tsx",
+    "../../src/lib/types.ts"
+  ]
+}

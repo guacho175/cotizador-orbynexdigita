@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useEffectEvent, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { GripVertical, Plus, Save, Trash2, FileDown, Share2, Eye, Loader2 } from "lucide-react";
@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { db } from "@/lib/db";
 import { computeTotals, lineTotal, money } from "@/lib/format";
-import { emptyItem, saveQuote, uuid } from "@/lib/repo";
+import { emptyItem, issueQuote, saveQuote } from "@/lib/repo";
 import type { Business, Client, Estado, Quote, QuoteItem } from "@/lib/types";
 import { ESTADOS } from "@/lib/types";
 import { AiAssist } from "./ai-assist";
@@ -33,7 +33,9 @@ interface Props {
 
 export function QuoteEditor({ userId, business, initialQuote, initialItems }: Props) {
   const navigate = useNavigate();
-  const clients = useLiveQuery(() => db.clients.orderBy("nombre").toArray(), [], []) ?? [];
+  const clients =
+    useLiveQuery(() => db.clients.where("user_id").equals(userId).sortBy("nombre"), [userId], []) ??
+    [];
 
   const [quote, setQuote] = useState<Quote>(initialQuote);
   const [items, setItems] = useState<QuoteItem[]>(
@@ -44,13 +46,11 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
-  const totals = useMemo(
-    () => computeTotals(items, quote.iva_percent),
-    [items, quote.iva_percent],
-  );
+  const totals = useMemo(() => computeTotals(items, quote.iva_percent), [items, quote.iva_percent]);
 
   const isFirstRender = useRef(true);
   const lastPersisted = useRef<{ quote: Quote; items: QuoteItem[] } | null>(null);
+  const runAutoSave = useEffectEvent(() => persist(true));
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -65,10 +65,10 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
       return;
     }
     const timer = setTimeout(() => {
-      void persist(true);
+      void runAutoSave();
     }, 2000);
     return () => clearTimeout(timer);
-  }, [quote, items]);
+  }, [quote, items, runAutoSave]);
 
   const client = clients.find((candidate) => candidate.id === quote.client_id) ?? null;
 
@@ -83,7 +83,10 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     }
     if (!isAutoSave) setSaving(true);
     try {
-      const snapshotBusiness = { ...business, logo_data: undefined } as unknown as Record<string, unknown>;
+      const snapshotBusiness = { ...business, logo_data: undefined } as unknown as Record<
+        string,
+        unknown
+      >;
       const saved = await saveQuote(
         {
           ...quote,
@@ -109,21 +112,42 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
   }
 
   function buildPdfProps(saved: Quote) {
+    const usesFrozenIdentity = saved.issued_at != null;
+    const frozenBusiness =
+      usesFrozenIdentity && saved.snapshot_negocio ? saved.snapshot_negocio : null;
+    const frozenClient =
+      usesFrozenIdentity && saved.snapshot_cliente
+        ? (saved.snapshot_cliente as unknown as Client)
+        : null;
+    const documentBusiness = frozenBusiness
+      ? ({
+          ...business,
+          ...frozenBusiness,
+          logo_data:
+            frozenBusiness.logo_path === business.logo_path ? (business.logo_data ?? null) : null,
+        } as Business)
+      : business;
+
     return {
       quote: { ...saved, ...totals },
       items,
-      business,
-      client,
-      logoDataUrl: business.logo_data ?? null,
+      business: documentBusiness,
+      client: frozenClient ?? client,
+      logoDataUrl: documentBusiness.logo_data ?? null,
     };
   }
 
   async function exportPdf(mode: "pdf" | "share") {
-    const saved = (await persist()) ?? quote;
     setExporting(mode);
     try {
+      const saved = await persist();
+      if (!saved) return;
+      const issued = await issueQuote(saved.id);
+      lastPersisted.current = { quote: issued, items };
+      setQuote(issued);
+
       const { downloadQuotePdf, shareQuotePdf } = await import("@/lib/pdf");
-      const props = buildPdfProps(saved);
+      const props = buildPdfProps(issued);
       if (mode === "share") await shareQuotePdf(props);
       else await downloadQuotePdf(props);
     } catch (error) {
@@ -256,7 +280,9 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setItems((current) => [...current, emptyItem(quote.id, userId, current.length)])}
+            onClick={() =>
+              setItems((current) => [...current, emptyItem(quote.id, userId, current.length)])
+            }
           >
             <Plus className="size-4" />
             Agregar línea
@@ -393,22 +419,44 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           Guardar
         </Button>
         <Button variant="outline" onClick={() => void openPreview()} disabled={exporting !== null}>
-          {exporting === "preview" ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
+          {exporting === "preview" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Eye className="size-4" />
+          )}
           Vista previa
         </Button>
-        <Button variant="outline" onClick={() => void exportPdf("pdf")} disabled={exporting !== null}>
-          {exporting === "pdf" ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+        <Button
+          variant="outline"
+          onClick={() => void exportPdf("pdf")}
+          disabled={exporting !== null}
+        >
+          {exporting === "pdf" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileDown className="size-4" />
+          )}
           Descargar PDF
         </Button>
-        <Button variant="outline" onClick={() => void exportPdf("share")} disabled={exporting !== null}>
-          {exporting === "share" ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />}
+        <Button
+          variant="outline"
+          onClick={() => void exportPdf("share")}
+          disabled={exporting !== null}
+        >
+          {exporting === "share" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Share2 className="size-4" />
+          )}
           Compartir
         </Button>
       </div>
 
       <PdfPreviewDialog
         open={showPreview}
-        onOpenChange={(open) => { if (!open) closePreview(); }}
+        onOpenChange={(open) => {
+          if (!open) closePreview();
+        }}
         pdfUrl={previewUrl}
         loading={!previewUrl && showPreview}
         onDownload={() => void exportPdf("pdf")}
@@ -419,9 +467,3 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     </div>
   );
 }
-
-export function newQuoteId(): string {
-  return uuid();
-}
-
-export type { Client };

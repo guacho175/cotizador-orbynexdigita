@@ -22,6 +22,7 @@ export interface Business {
   iva_percent: number;
   next_quote_number: number;
   color_factura: string | null;
+  pdf_template_key: string;
   created_at?: string;
   updated_at?: string;
   /** Local-only: data URL of the logo so the PDF works offline. Never sent to the server. */
@@ -38,6 +39,7 @@ export interface Client {
   telefono: string;
   direccion: string;
   notas: string;
+  pdf_template_key: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -47,6 +49,9 @@ export interface Quote {
   user_id: string;
   client_id: string | null;
   numero: number | null;
+  pdf_template_key: string | null;
+  pdf_template_version: number | null;
+  issued_at: string | null;
   is_archived?: boolean;
   fecha: string;
   validez_dias: number;

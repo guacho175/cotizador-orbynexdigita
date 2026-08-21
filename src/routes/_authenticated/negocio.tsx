@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { db } from "@/lib/db";
 import { getBusiness, saveBusiness, uuid } from "@/lib/repo";
 import type { Business } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,15 @@ export const Route = createFileRoute("/_authenticated/negocio")({
   head: () => ({
     meta: [
       { title: "Mi negocio — Cotiza" },
-      { name: "description", content: "Configura los datos de tu empresa, el logo, el IVA y los datos de transferencia." },
+      {
+        name: "description",
+        content: "Configura los datos de tu empresa, el logo, el IVA y los datos de transferencia.",
+      },
       { property: "og:title", content: "Mi negocio — Cotiza" },
-      { property: "og:description", content: "Configura los datos que aparecen en tus cotizaciones." },
+      {
+        property: "og:description",
+        content: "Configura los datos que aparecen en tus cotizaciones.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -61,6 +66,7 @@ function BusinessPage() {
   const online = useOnline();
   const [draft, setDraft] = useState<Business | null>(null);
   const [uploading, setUploading] = useState(false);
+  const runAutoSave = useEffectEvent((business: Business) => submit(business, true));
 
   useEffect(() => {
     if (stored && !draft) setDraft(stored);
@@ -72,10 +78,10 @@ function BusinessPage() {
     if (!isDirty) return;
 
     const timer = setTimeout(() => {
-      void submit(draft, true);
+      void runAutoSave(draft);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [draft, stored]);
+  }, [draft, stored, runAutoSave]);
 
   if (stored === undefined) return <p className="text-sm text-muted-foreground">Cargando…</p>;
 
@@ -99,8 +105,9 @@ function BusinessPage() {
     condiciones: "",
     pie_pagina: "",
     iva_percent: 19,
-    next_quote_number: 1,
+    next_quote_number: 200,
     color_factura: "#0b2545",
+    pdf_template_key: "standard-v1",
   };
 
   function patch(patchValue: Partial<Business>) {
@@ -143,8 +150,8 @@ function BusinessPage() {
       if (!isAutoSave) toast.error(parsed.error.issues[0].message);
       return;
     }
-    await saveBusiness({ ...payload, ...parsed.data });
-    await db.businesses.put({ ...payload, ...parsed.data });
+    const saved = await saveBusiness({ ...payload, ...parsed.data });
+    setDraft(saved);
     if (isAutoSave) {
       toast.success("Autoguardado", { id: "autosave-biz", duration: 1500 });
     } else {
@@ -156,7 +163,9 @@ function BusinessPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Mi negocio</h1>
-        <p className="text-sm text-muted-foreground">Estos datos aparecen en el encabezado del PDF.</p>
+        <p className="text-sm text-muted-foreground">
+          Estos datos aparecen en el encabezado del PDF.
+        </p>
       </div>
 
       <Card>
@@ -167,7 +176,11 @@ function BusinessPage() {
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex size-20 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted">
               {current.logo_data ? (
-                <img src={current.logo_data} alt="Logo actual" className="size-full object-contain" />
+                <img
+                  src={current.logo_data}
+                  alt="Logo actual"
+                  className="size-full object-contain"
+                />
               ) : (
                 <span className="text-xs text-muted-foreground">Sin logo</span>
               )}
@@ -187,7 +200,11 @@ function BusinessPage() {
                     if (file) void uploadLogo(file);
                   }}
                 />
-                {uploading ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : <Upload className="size-4 text-muted-foreground" />}
+                {uploading ? (
+                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Upload className="size-4 text-muted-foreground" />
+                )}
               </div>
             </div>
           </div>
