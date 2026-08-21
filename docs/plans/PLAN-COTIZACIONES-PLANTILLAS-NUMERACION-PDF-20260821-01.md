@@ -3,7 +3,7 @@
 ## Estado y alcance
 
 - Fecha: 2026-08-21.
-- Estado: aprobado, implementado y migrado; pendiente únicamente del despliegue final del frontend.
+- Estado: completado, migrado, publicado y verificado en producción.
 - Alcance analizado: plantillas PDF, fidelidad histórica, numeración, autoguardado, outbox/sincronización, orden y agrupación de cotizaciones, paginación PDF y cobertura de pruebas.
 - La sección de diagnóstico conserva la evidencia del estado inicial. La ejecución aprobada se documenta en "Resultado de implementación".
 - Supabase remoto al momento de este corte documental: sin lecturas ni escrituras; el preflight y despliegue se registrarán antes del cierre.
@@ -552,3 +552,6 @@ Ningún agente debe revertir cambios ajenos. Si dos workstreams necesitan el mis
 - Verificación posterior: default 200, contadores existentes 204 y 383, 15 folios históricos aún en 201–382, 0 duplicados, 0 emitidas con metadata incompleta e índice único presente.
 - Permisos verificados: `authenticated` puede ejecutar la RPC; `anon` no puede; el cliente autenticado no puede actualizar `quotes.numero` ni `businesses.next_quote_number`.
 - Cuota/transferencia Supabase: se consultaron solo agregados y metadatos, con 6 filas totales devueltas; no se descargaron registros comerciales ni archivos. Servicios tocados: Management API (2 intentos 403) y PostgreSQL/SQL Editor (preflight, migración y verificaciones). Storage, Auth y Realtime no se modificaron.
+- Git: commit funcional `066bcb3`, rama de trabajo publicada y avance rápido de `main` enviado a `origin/main`.
+- Vercel: deployment de producción `dpl_G8E3QnnaMLscTfnuwmPPSAMk2J9a` en estado `Ready`, con alias `https://cotizador.orbynexdigital.cl` y `https://cotizador-orbynexdigita.vercel.app`.
+- Smoke test: ambos alias respondieron HTTP 200; el dominio principal entregó 4.305 bytes. El wrapper de despliegue terminó con un falso negativo al no reconocer el formato nuevo de salida de Vercel, pero la inspección directa confirmó `Ready` y los alias activos.
