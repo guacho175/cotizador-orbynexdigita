@@ -149,11 +149,12 @@ async function pushItem(item: OutboxItem): Promise<void> {
   }
 
   // Conflict detection: has the server copy changed since our local base?
-  const { data: remote } = await supabase
+  const { data: remote, error: remoteError } = await supabase
     .from(table)
     .select("*")
     .eq("id", item.row_id)
     .maybeSingle();
+  if (remoteError) throw remoteError;
 
   if (
     remote &&
@@ -177,11 +178,17 @@ async function pushItem(item: OutboxItem): Promise<void> {
   delete payload.updated_at;
   delete payload.created_at;
 
-  const { data, error } = await supabase
-    .from(table)
-    .upsert(payload as never, { onConflict: "id" })
-    .select()
-    .maybeSingle();
+  // An upsert fires INSERT triggers before conflict resolution. For a quote
+  // already issued, its protected issue fields are deliberately absent from
+  // this payload, so that INSERT attempt would look like an invalid draft.
+  // Updating an existing row avoids that false lifecycle violation.
+  const request = remote
+    ? supabase
+        .from(table)
+        .update(payload as never)
+        .eq("id", item.row_id)
+    : supabase.from(table).insert(payload as never);
+  const { data, error } = await request.select().maybeSingle();
   if (error) throw error;
 
   if (data) {

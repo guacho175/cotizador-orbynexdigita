@@ -57,7 +57,7 @@ La integración con AI existe puramente como un _asistente de redacción_ para m
 - La secuencia pertenece al negocio/usuario, no al cliente. Por ejemplo: cliente A = 200, cliente B = 201 y cliente A = 202.
 - PostgreSQL bloquea la cotización y el negocio durante la emisión, impone unicidad parcial por `(user_id, numero)` e impide cambiar un número ya emitido.
 - El navegador no puede escribir `numero`, `issued_at`, la versión congelada ni `next_quote_number`. Estos campos pertenecen al servidor.
-- La outbox coalesce autoguardados de la misma fila antes de sincronizar para no reproducir estados intermedios innecesarios. Si una edición ocurre durante un push, la respuesta anterior no sobrescribe el borrador local y la revisión pendiente se actualiza para evitar conflictos propios falsos.
+- La outbox coalesce autoguardados de la misma fila antes de sincronizar para no reproducir estados intermedios innecesarios. Actualiza las filas ya existentes en vez de usar un upsert, para respetar los campos de emisión protegidos; si una edición ocurre durante un push, la respuesta anterior no sobrescribe el borrador local y la revisión pendiente se actualiza para evitar conflictos propios falsos.
 
 ### 7. Sincronización y listados locales
 
