@@ -44,3 +44,8 @@ supabase/.temp/
 
 # Generated QA artifacts
 tmp/
+
+# Multi-account CLI auth
+.project-auth
+.env.supabase
+.env.vercel
