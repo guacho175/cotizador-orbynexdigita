@@ -50,12 +50,14 @@ La integración con AI existe puramente como un _asistente de redacción_ para m
 ### 6. Ciclo de cotización y numeración
 
 - Una cotización se crea y autoguarda como borrador con `numero = null`. Guardar o editar nunca consume un correlativo.
-- Descargar o compartir el PDF definitivo sincroniza primero el borrador y ejecuta `assign_quote_number` una sola vez. La operación es idempotente.
+- Descargar el PDF definitivo sincroniza primero el borrador y ejecuta `assign_quote_number` una sola vez. La operación es idempotente. En un dispositivo compatible, compartir prepara el archivo y requiere un gesto final del usuario.
+- `estado` conserva los valores compatibles `borrador`, `enviada`, `aceptada` y `rechazada`, presentados como **Borrador**, **Realizada**, **Aceptada por el cliente** y **Pospuesta por el cliente**. La emisión establece `enviada`; solo una cotización emitida puede actualizarse a los estados comerciales posteriores.
+- El negocio define la etiqueta y porcentaje del recargo comercial (por ejemplo, IVA 19% u Honorarios 15,25%). Al emitir, el usuario confirma aplicarlo o generar el documento sin recargo. La cotización conserva el porcentaje decidido y el PDF usa la etiqueta congelada en el snapshot del negocio.
 - Los negocios nuevos comienzan en 200. Los negocios existentes continúan desde el mayor valor entre su contador actual, `MAX(numero) + 1` y 200; nunca se renumeran históricos.
 - La secuencia pertenece al negocio/usuario, no al cliente. Por ejemplo: cliente A = 200, cliente B = 201 y cliente A = 202.
 - PostgreSQL bloquea la cotización y el negocio durante la emisión, impone unicidad parcial por `(user_id, numero)` e impide cambiar un número ya emitido.
 - El navegador no puede escribir `numero`, `issued_at`, la versión congelada ni `next_quote_number`. Estos campos pertenecen al servidor.
-- La outbox coalesce autoguardados de la misma fila antes de sincronizar para no reproducir estados intermedios innecesarios.
+- La outbox coalesce autoguardados de la misma fila antes de sincronizar para no reproducir estados intermedios innecesarios. Si una edición ocurre durante un push, la respuesta anterior no sobrescribe el borrador local y la revisión pendiente se actualiza para evitar conflictos propios falsos.
 
 ### 7. Sincronización y listados locales
 

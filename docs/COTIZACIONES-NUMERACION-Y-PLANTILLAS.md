@@ -6,8 +6,10 @@
 2. La serie es global para el negocio e independiente del cliente.
 3. Los negocios existentes nunca se resetean ni se renumeran; continúan desde el siguiente número seguro.
 4. Un borrador no tiene número. Autoguardar, previsualizar y editar no consumen folios.
-5. Descargar o compartir el PDF definitivo emite la cotización y asigna el número de forma transaccional e idempotente.
+5. Descargar el PDF definitivo emite la cotización y asigna el número de forma transaccional e idempotente. Compartir archivos se ofrece únicamente en dispositivos compatibles, después de preparar el PDF.
 6. Un número emitido y la plantilla congelada no se pueden modificar.
+7. Una cotización no emitida siempre es `borrador`. Emitirla establece `enviada`, presentado como **Realizada**. Luego puede marcarse como **Aceptada por el cliente** (`aceptada`) o **Pospuesta por el cliente** (`rechazada`).
+8. Antes de la primera emisión se decide aplicar el recargo configurado por el negocio o emitir sin recargo. La etiqueta del recargo no se asume: puede ser IVA, Honorarios u otra denominación comercial breve.
 
 Las migraciones históricas que alguna vez usaron 1 o 201 no se editan porque pueden haber sido aplicadas en otros entornos. La migración `20260821174913_enforce_quote_issuance_and_pdf_templates.sql` es la regla posterior y autoritativa: fija el valor inicial en 200, repara solamente el puntero del contador y preserva todos los folios existentes.
 
@@ -40,6 +42,8 @@ No se deben insertar condiciones por UUID en la plantilla estándar, cargar comp
 - calcula `GREATEST(next_quote_number, MAX(numero) + 1, 200)`;
 - congela plantilla, versión y fecha de emisión;
 - devuelve el número asignado.
+- verifica que exista cliente, fecha, validez positiva, monto neto positivo y líneas completas antes de emitir;
+- establece el estado compatible `enviada` en la misma transacción.
 
 El cliente elimina de los upserts normales los campos administrados por el servidor. Los permisos de columna y el trigger de inmutabilidad constituyen una segunda defensa si aparece un cliente antiguo o defectuoso.
 

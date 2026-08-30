@@ -1,4 +1,4 @@
-import { FileDown, Share2, Loader2 } from "lucide-react";
+import { FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +14,7 @@ interface PdfPreviewDialogProps {
   pdfUrl: string | null;
   loading: boolean;
   onDownload: () => void;
-  onShare: () => void;
   downloading: boolean;
-  sharing: boolean;
 }
 
 export function PdfPreviewDialog({
@@ -25,9 +23,7 @@ export function PdfPreviewDialog({
   pdfUrl,
   loading,
   onDownload,
-  onShare,
   downloading,
-  sharing,
 }: PdfPreviewDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,19 +66,6 @@ export function PdfPreviewDialog({
               <FileDown className="size-4" />
             )}
             Descargar
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onShare}
-            disabled={loading || sharing}
-          >
-            {sharing ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Share2 className="size-4" />
-            )}
-            Compartir
           </Button>
         </div>
       </DialogContent>

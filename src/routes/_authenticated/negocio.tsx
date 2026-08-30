@@ -38,6 +38,7 @@ const businessSchema = z.object({
   nombre: z.string().trim().min(2, "El nombre de tu empresa es obligatorio").max(160),
   rut: z.string().trim().max(20),
   email: z.union([z.string().trim().email("Correo inválido").max(255), z.literal("")]),
+  tax_label: z.string().trim().min(1, "La etiqueta del recargo es obligatoria").max(40),
   iva_percent: z.number().min(0, "IVA inválido").max(100, "IVA inválido"),
 });
 
@@ -104,6 +105,7 @@ function BusinessPage() {
     banco_email: "",
     condiciones: "",
     pie_pagina: "",
+    tax_label: "IVA",
     iva_percent: 19,
     next_quote_number: 200,
     color_factura: "#0b2545",
@@ -144,6 +146,7 @@ function BusinessPage() {
       nombre: payload.nombre,
       rut: payload.rut,
       email: payload.email,
+      tax_label: payload.tax_label,
       iva_percent: Number(payload.iva_percent),
     });
     if (!parsed.success) {
@@ -244,16 +247,37 @@ function BusinessPage() {
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="biz-iva">IVA por defecto (%)</Label>
-              <Input
-                id="biz-iva"
-                type="number"
-                min={0}
-                max={100}
-                value={current.iva_percent}
-                onChange={(event) => patch({ iva_percent: Number(event.target.value) || 0 })}
-              />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="biz-tax-label">Etiqueta del recargo</Label>
+                <Input
+                  id="biz-tax-label"
+                  maxLength={40}
+                  placeholder="IVA u Honorarios"
+                  value={current.tax_label ?? "IVA"}
+                  onChange={(event) => patch({ tax_label: event.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="biz-iva">Porcentaje por defecto (%)</Label>
+                <Input
+                  id="biz-iva"
+                  type="number"
+                  inputMode="decimal"
+                  step={0.01}
+                  min={0}
+                  max={100}
+                  value={current.iva_percent}
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    patch({ iva_percent: Number.isFinite(value) ? value : 0 });
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Se aplicará como recargo comercial al emitir, salvo que elijas generar la cotización
+                sin recargo.
+              </p>
             </div>
           </div>
         </CardContent>

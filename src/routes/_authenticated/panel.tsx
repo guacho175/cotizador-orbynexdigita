@@ -5,6 +5,7 @@ import { CheckCircle2, ChevronDown, Clock, FileText, Users } from "lucide-react"
 import { db } from "@/lib/db";
 import { formatDate, money, quoteNumber } from "@/lib/format";
 import type { Quote } from "@/lib/types";
+import { normalizeQuoteStatus, quoteStatusLabel } from "@/lib/quote-lifecycle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { InstallPrompt } from "@/components/layout/install-prompt";
@@ -50,7 +51,7 @@ function QuoteLink({ quote }: { quote: Quote }) {
         <p className="text-xs text-muted-foreground">{money(quote.total)}</p>
       </div>
       <Badge variant="secondary" className="shrink-0 capitalize">
-        {quote.estado}
+        {quoteStatusLabel(normalizeQuoteStatus(quote))}
       </Badge>
     </Link>
   );
@@ -152,7 +153,7 @@ function Panel() {
     [activeQuotes, data?.clients],
   );
   const acceptedQuotes = activeQuotes.filter((quote) => quote.estado === "aceptada");
-  const sentQuotes = activeQuotes.filter((quote) => quote.estado === "enviada");
+  const sentQuotes = activeQuotes.filter((quote) => normalizeQuoteStatus(quote) === "enviada");
 
   const cards = [
     { label: "Cotizaciones", value: String(activeQuotes.length), icon: FileText },

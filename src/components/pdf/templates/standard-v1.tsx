@@ -11,6 +11,7 @@ import {
   View,
 } from "@react-pdf/renderer";
 import { addDays, formatDate, money, quoteNumber } from "@/lib/format";
+import { businessTaxLabel } from "@/lib/quote-lifecycle";
 import type { QuoteDocumentProps } from "../core/model";
 import { QuoteItemBlock } from "../core/blocks/quote-item";
 import { contrastColor, PDF_COLORS, PDF_LAYOUT } from "../core/tokens";
@@ -315,7 +316,9 @@ function Totals({
         <Text style={styles.observationText}>{money(quote.subtotal)}</Text>
       </View>
       <View style={styles.totalRow}>
-        <Text style={styles.observationText}>IVA ({quote.iva_percent}%)</Text>
+        <Text style={styles.observationText}>
+          {businessTaxLabel(props.business)} ({quote.iva_percent}%)
+        </Text>
         <Text style={styles.observationText}>{money(quote.iva)}</Text>
       </View>
       <View style={[styles.grandTotal, { backgroundColor: themeColor }]}>

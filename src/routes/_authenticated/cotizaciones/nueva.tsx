@@ -53,6 +53,7 @@ function NewQuote() {
     banco_email: "",
     condiciones: "",
     pie_pagina: "",
+    tax_label: "IVA",
     iva_percent: 19,
     next_quote_number: 200,
     color_factura: "#0b2545",

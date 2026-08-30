@@ -2,6 +2,8 @@ import { db } from "./db";
 import { enqueue, finalizeQuote, flushOutbox } from "./sync";
 import type { Business, Client, Quote, QuoteItem } from "./types";
 import { computeTotals, lineTotal, today } from "./format";
+import { canSetIssuedQuoteStatus, normalizeQuoteStatus } from "./quote-lifecycle";
+import type { Estado } from "./types";
 
 export function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -28,6 +30,7 @@ export async function saveBusiness(business: Business): Promise<Business> {
   const base = await db.businesses.get(business.id);
   const row: Business = {
     ...business,
+    tax_label: business.tax_label?.trim() || "Recargo",
     next_quote_number: base?.next_quote_number ?? 200,
     pdf_template_key: business.pdf_template_key || base?.pdf_template_key || "standard-v1",
     updated_at: nowIso(),
@@ -138,6 +141,11 @@ export async function saveQuote(quote: Quote, items: QuoteItem[]): Promise<Quote
   const row: Quote = {
     ...quote,
     ...totals,
+    estado: normalizeQuoteStatus({
+      estado: quote.estado,
+      numero: baseQuote?.numero ?? quote.numero,
+      issued_at: baseQuote?.issued_at ?? quote.issued_at,
+    }),
     numero: baseQuote?.numero ?? quote.numero,
     pdf_template_key:
       baseQuote?.numero != null || baseQuote?.issued_at
@@ -206,6 +214,26 @@ export async function saveQuote(quote: Quote, items: QuoteItem[]): Promise<Quote
  */
 export async function issueQuote(id: string): Promise<Quote> {
   return finalizeQuote(id);
+}
+
+export async function updateQuoteStatus(id: string, status: Estado): Promise<Quote> {
+  const baseQuote = await db.quotes.get(id);
+  if (!baseQuote) throw new Error("No encontramos la cotización en este dispositivo.");
+  if (!canSetIssuedQuoteStatus(baseQuote, status)) {
+    throw new Error("Solo puedes actualizar el estado de una cotización realizada.");
+  }
+
+  const row: Quote = { ...baseQuote, estado: status, updated_at: nowIso() };
+  await db.quotes.put(row);
+  await enqueue({
+    entity: "quotes",
+    op: "upsert",
+    row_id: row.id,
+    payload: { ...row },
+    base_updated_at: baseQuote.updated_at ?? null,
+  });
+  kick();
+  return row;
 }
 
 export async function deleteQuote(id: string): Promise<void> {

@@ -19,6 +19,7 @@ export interface Business {
   banco_email: string;
   condiciones: string;
   pie_pagina: string;
+  tax_label: string;
   iva_percent: number;
   next_quote_number: number;
   color_factura: string | null;
@@ -80,10 +81,3 @@ export interface QuoteItem {
   created_at?: string;
   updated_at?: string;
 }
-
-export const ESTADOS: { value: Estado; label: string }[] = [
-  { value: "borrador", label: "Borrador" },
-  { value: "enviada", label: "Enviada" },
-  { value: "aceptada", label: "Aceptada" },
-  { value: "rechazada", label: "Rechazada" },
-];

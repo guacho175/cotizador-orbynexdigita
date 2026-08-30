@@ -186,6 +186,25 @@ async function pushItem(item: OutboxItem): Promise<void> {
 
   if (data) {
     const saved = data as Record<string, unknown>;
+    const newerPending = await db.outbox
+      .where("entity")
+      .equals(item.entity)
+      .and((candidate) => candidate.row_id === item.row_id && candidate.seq !== item.seq)
+      .toArray();
+
+    // An edit made while this request was in flight must keep its local value.
+    // Its conflict base is advanced to this server response, so the next push
+    // is recognized as a continuation from this device rather than a conflict.
+    const savedUpdatedAt = typeof saved.updated_at === "string" ? saved.updated_at : null;
+    if (savedUpdatedAt) {
+      await Promise.all(
+        newerPending.map((pending) =>
+          db.outbox.update(pending.seq!, { base_updated_at: savedUpdatedAt }),
+        ),
+      );
+    }
+    if (newerPending.length > 0) return;
+
     if (item.entity === "businesses") {
       const local = await db.businesses.get(item.row_id);
       await db.businesses.put({

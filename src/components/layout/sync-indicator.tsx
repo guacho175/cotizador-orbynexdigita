@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function SyncIndicator({ className }: { className?: string }) {
-  const { online, pending, conflicts, last, syncNow, dismissConflicts } = useSyncStatus();
+  const { online, pending, conflicts, last, syncNow, acknowledgeConflicts } = useSyncStatus();
 
   const label = !online
     ? "Sin conexión"
@@ -23,19 +23,21 @@ export function SyncIndicator({ className }: { className?: string }) {
               ? "bg-accent text-accent-foreground"
               : "bg-success/15 text-success",
         )}
-        title={last ? `Última sincronización: ${new Date(last).toLocaleString("es-CL")}` : undefined}
+        title={
+          last ? `Última sincronización: ${new Date(last).toLocaleString("es-CL")}` : undefined
+        }
       >
         {!online ? <CloudOff className="size-3.5" /> : <Cloud className="size-3.5" />}
         {label}
       </span>
       {conflicts > 0 ? (
-        <button 
-          onClick={() => void dismissConflicts()}
+        <button
+          onClick={() => void acknowledgeConflicts()}
           className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-1 text-xs text-destructive hover:bg-destructive/25 transition-colors cursor-pointer"
-          title="Descartar conflictos"
+          title="Marcar como revisado"
         >
           <AlertTriangle className="size-3.5" />
-          {conflicts} conflicto{conflicts === 1 ? "" : "s"}
+          {conflicts} cambio{conflicts === 1 ? "" : "s"} para revisar
         </button>
       ) : null}
       {online && pending > 0 ? (

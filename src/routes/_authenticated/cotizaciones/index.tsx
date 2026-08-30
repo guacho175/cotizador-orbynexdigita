@@ -4,13 +4,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Copy, Search } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
-import { archiveQuote, duplicateQuote, restoreQuote } from "@/lib/repo";
+import { archiveQuote, duplicateQuote, restoreQuote, updateQuoteStatus } from "@/lib/repo";
 import { formatDate, money, quoteNumber } from "@/lib/format";
-import type { Client, Quote } from "@/lib/types";
-import { Badge } from "@/components/ui/badge";
+import type { Client, Estado, Quote } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { QuoteStatusControl } from "@/components/quotes/quote-status-control";
 import {
   buildClientMap,
   filterQuotes,
@@ -56,12 +56,14 @@ function QuoteRow({
   showArchived,
   onDuplicate,
   onArchiveToggle,
+  onStatusChange,
 }: {
   quote: Quote;
   client: Client | undefined;
   showArchived: boolean;
   onDuplicate: (quote: Quote) => Promise<void>;
   onArchiveToggle: (quote: Quote) => Promise<void>;
+  onStatusChange: (quote: Quote, status: Estado) => Promise<void>;
 }) {
   const clientLabel = quoteClientLabel(quote, client);
 
@@ -82,9 +84,11 @@ function QuoteRow({
             {clientLabel.secondary ? ` · ${clientLabel.secondary}` : ""}
           </p>
         </Link>
-        <Badge variant="secondary" className="capitalize">
-          {quote.estado}
-        </Badge>
+        <QuoteStatusControl
+          quote={quote}
+          compact
+          onChange={(status) => void onStatusChange(quote, status)}
+        />
         <Button
           size="sm"
           variant="ghost"
@@ -117,6 +121,7 @@ function QuoteListSection({
   showArchived,
   onDuplicate,
   onArchiveToggle,
+  onStatusChange,
 }: {
   title: string;
   quotes: Quote[];
@@ -124,6 +129,7 @@ function QuoteListSection({
   showArchived: boolean;
   onDuplicate: (quote: Quote) => Promise<void>;
   onArchiveToggle: (quote: Quote) => Promise<void>;
+  onStatusChange: (quote: Quote, status: Estado) => Promise<void>;
 }) {
   if (quotes.length === 0) return null;
 
@@ -138,6 +144,7 @@ function QuoteListSection({
           showArchived={showArchived}
           onDuplicate={onDuplicate}
           onArchiveToggle={onArchiveToggle}
+          onStatusChange={onStatusChange}
         />
       ))}
     </section>
@@ -215,6 +222,15 @@ function QuotesList() {
     }
   }
 
+  async function handleStatusChange(quote: Quote, status: Estado) {
+    try {
+      await updateQuoteStatus(quote.id, status);
+      toast.success("Estado comercial actualizado");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el estado");
+    }
+  }
+
   const firstVisible = filteredQuotes.length === 0 ? 0 : safePage * QUOTES_PAGE_SIZE + 1;
   const lastVisible = Math.min((safePage + 1) * QUOTES_PAGE_SIZE, filteredQuotes.length);
 
@@ -276,20 +292,22 @@ function QuotesList() {
       ) : (
         <div className="space-y-5">
           <QuoteListSection
-            title="Pendientes de numeración"
+            title="Borradores"
             quotes={visiblePending}
             clientsById={clientsById}
             showArchived={showArchived}
             onDuplicate={handleDuplicate}
             onArchiveToggle={handleArchiveToggle}
+            onStatusChange={handleStatusChange}
           />
           <QuoteListSection
-            title="Cotizaciones numeradas"
+            title="Cotizaciones realizadas"
             quotes={visibleNumbered}
             clientsById={clientsById}
             showArchived={showArchived}
             onDuplicate={handleDuplicate}
             onArchiveToggle={handleArchiveToggle}
+            onStatusChange={handleStatusChange}
           />
 
           <nav

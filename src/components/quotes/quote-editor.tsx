@@ -7,8 +7,14 @@ import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { computeTotals, lineTotal, money } from "@/lib/format";
 import { emptyItem, issueQuote, saveQuote } from "@/lib/repo";
-import type { Business, Client, Estado, Quote, QuoteItem } from "@/lib/types";
-import { ESTADOS } from "@/lib/types";
+import type { Business, Client, Quote, QuoteItem } from "@/lib/types";
+import {
+  businessTaxLabel,
+  isIssuedQuote,
+  normalizeQuoteStatus,
+  quoteStatusLabel,
+  validateQuoteForIssuance,
+} from "@/lib/quote-lifecycle";
 import { AiAssist } from "./ai-assist";
 import { PdfPreviewDialog } from "./pdf-preview-dialog";
 import { Button } from "@/components/ui/button";
@@ -16,6 +22,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -45,8 +61,13 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
   const [exporting, setExporting] = useState<"pdf" | "share" | "preview" | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [issueMode, setIssueMode] = useState<"pdf" | "share" | null>(null);
+  const [preparedShareFile, setPreparedShareFile] = useState<File | null>(null);
+  const [canShare, setCanShare] = useState(false);
 
   const totals = useMemo(() => computeTotals(items, quote.iva_percent), [items, quote.iva_percent]);
+  const issued = isIssuedQuote(quote);
+  const taxLabel = businessTaxLabel(business);
 
   const isFirstRender = useRef(true);
   const lastPersisted = useRef<{ quote: Quote; items: QuoteItem[] } | null>(null);
@@ -72,15 +93,21 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
 
   const client = clients.find((candidate) => candidate.id === quote.client_id) ?? null;
 
+  useEffect(() => {
+    let active = true;
+    void import("@/lib/pdf").then(({ canSharePdfFiles }) => {
+      if (active) setCanShare(canSharePdfFiles());
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   function patchItem(id: string, patch: Partial<QuoteItem>) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  async function persist(isAutoSave = false): Promise<Quote | null> {
-    if (!items.some((item) => item.descripcion.trim())) {
-      if (!isAutoSave) toast.error("Agrega al menos una línea con descripción.");
-      return null;
-    }
+  async function persist(isAutoSave = false, draft: Quote = quote): Promise<Quote | null> {
     if (!isAutoSave) setSaving(true);
     try {
       const snapshotBusiness = { ...business, logo_data: undefined } as unknown as Record<
@@ -89,7 +116,7 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
       >;
       const saved = await saveQuote(
         {
-          ...quote,
+          ...draft,
           snapshot_negocio: snapshotBusiness,
           snapshot_cliente: client ? ({ ...client } as unknown as Record<string, unknown>) : null,
         },
@@ -129,7 +156,7 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
       : business;
 
     return {
-      quote: { ...saved, ...totals },
+      quote: { ...saved, ...computeTotals(items, saved.iva_percent) },
       items,
       business: documentBusiness,
       client: frozenClient ?? client,
@@ -137,23 +164,59 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
     };
   }
 
-  async function exportPdf(mode: "pdf" | "share") {
+  async function exportPdf(mode: "pdf" | "share", withTax: boolean) {
     setExporting(mode);
     try {
-      const saved = await persist();
+      const draft = {
+        ...quote,
+        iva_percent: withTax ? Number(business.iva_percent) || 0 : 0,
+      };
+      const saved = await persist(false, draft);
       if (!saved) return;
       const issued = await issueQuote(saved.id);
       lastPersisted.current = { quote: issued, items };
       setQuote(issued);
 
-      const { downloadQuotePdf, shareQuotePdf } = await import("@/lib/pdf");
+      const { buildQuotePdfFile, downloadQuotePdfFile } = await import("@/lib/pdf");
       const props = buildPdfProps(issued);
-      if (mode === "share") await shareQuotePdf(props);
-      else await downloadQuotePdf(props);
+      const file = await buildQuotePdfFile(props);
+      if (mode === "share") {
+        setPreparedShareFile(file);
+        toast.success("PDF listo para compartir.");
+      } else {
+        downloadQuotePdfFile(file);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo generar el PDF");
     } finally {
       setExporting(null);
+    }
+  }
+
+  function requestPdf(mode: "pdf" | "share") {
+    if (issued) {
+      void exportPdf(mode, quote.iva_percent > 0);
+      return;
+    }
+
+    const issues = validateQuoteForIssuance({ quote, items, client, business });
+    if (issues.length) {
+      toast.error(issues[0].message);
+      return;
+    }
+    setIssueMode(mode);
+  }
+
+  async function sharePreparedFile() {
+    if (!preparedShareFile) return;
+    try {
+      const { sharePreparedQuotePdf } = await import("@/lib/pdf");
+      await sharePreparedQuotePdf(preparedShareFile);
+    } catch (error) {
+      const shareError = error as { name?: string };
+      if (shareError.name !== "AbortError") {
+        toast.error(error instanceof Error ? error.message : "No se pudo compartir el PDF.");
+      }
     }
   }
 
@@ -219,22 +282,10 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="estado">Estado</Label>
-            <Select
-              value={quote.estado}
-              onValueChange={(value) => setQuote((c) => ({ ...c, estado: value as Estado }))}
-            >
-              <SelectTrigger id="estado">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ESTADOS.map((estado) => (
-                  <SelectItem key={estado.value} value={estado.value}>
-                    {estado.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Estado</Label>
+            <div className="flex h-9 items-center rounded-md border border-input bg-muted px-3 text-sm font-medium">
+              {quoteStatusLabel(normalizeQuoteStatus(quote))}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="fecha">Fecha</Label>
@@ -258,19 +309,11 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
               }
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="iva">IVA (%)</Label>
-            <Input
-              id="iva"
-              type="number"
-              min={0}
-              max={100}
-              value={quote.iva_percent}
-              onChange={(event) =>
-                setQuote((c) => ({ ...c, iva_percent: Number(event.target.value) || 0 }))
-              }
-            />
-          </div>
+          <p className="self-end text-xs text-muted-foreground">
+            {issued
+              ? `${taxLabel} aplicado: ${quote.iva_percent}%`
+              : `Al emitir podrás aplicar ${taxLabel} (${business.iva_percent}%) o cotizar sin recargo.`}
+          </p>
         </CardContent>
       </Card>
 
@@ -397,7 +440,9 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
             <span>{money(totals.subtotal)}</span>
           </div>
           <div className="flex w-full max-w-xs justify-between">
-            <span className="text-muted-foreground">IVA ({quote.iva_percent}%)</span>
+            <span className="text-muted-foreground">
+              {taxLabel} ({quote.iva_percent}%)
+            </span>
             <span>{money(totals.iva)}</span>
           </div>
           <div className="mt-2 flex w-full max-w-xs justify-between rounded-lg bg-primary px-3 py-2 text-primary-foreground">
@@ -426,11 +471,7 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           )}
           Vista previa
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => void exportPdf("pdf")}
-          disabled={exporting !== null}
-        >
+        <Button variant="outline" onClick={() => requestPdf("pdf")} disabled={exporting !== null}>
           {exporting === "pdf" ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (
@@ -438,18 +479,26 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
           )}
           Descargar PDF
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => void exportPdf("share")}
-          disabled={exporting !== null}
-        >
-          {exporting === "share" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
+        {canShare ? (
+          <Button
+            variant="outline"
+            onClick={() => requestPdf("share")}
+            disabled={exporting !== null}
+          >
+            {exporting === "share" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Share2 className="size-4" />
+            )}
+            Compartir
+          </Button>
+        ) : null}
+        {preparedShareFile ? (
+          <Button onClick={() => void sharePreparedFile()}>
             <Share2 className="size-4" />
-          )}
-          Compartir
-        </Button>
+            Compartir PDF listo
+          </Button>
+        ) : null}
       </div>
 
       <PdfPreviewDialog
@@ -459,11 +508,41 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
         }}
         pdfUrl={previewUrl}
         loading={!previewUrl && showPreview}
-        onDownload={() => void exportPdf("pdf")}
-        onShare={() => void exportPdf("share")}
+        onDownload={() => requestPdf("pdf")}
         downloading={exporting === "pdf"}
-        sharing={exporting === "share"}
       />
+      <AlertDialog open={issueMode !== null} onOpenChange={(open) => !open && setIssueMode(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cómo deseas emitir esta cotización?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Elige si el PDF definitivo aplica {taxLabel} ({business.iva_percent}%) o se emite sin
+              recargo. Esta acción asigna el folio y marca la cotización como realizada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const mode = issueMode;
+                setIssueMode(null);
+                if (mode) void exportPdf(mode, false);
+              }}
+            >
+              Sin {taxLabel}
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                const mode = issueMode;
+                setIssueMode(null);
+                if (mode) void exportPdf(mode, true);
+              }}
+            >
+              Con {taxLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { Client, Quote } from "@/lib/types";
+import { normalizeQuoteStatus, quoteStatusLabel } from "../../lib/quote-lifecycle.ts";
 
 export const QUOTES_PAGE_SIZE = 50;
 
@@ -94,9 +95,10 @@ export function filterQuotes(
       client?.nombre,
       client?.rut,
       quote.estado,
+      quoteStatusLabel(normalizeQuoteStatus(quote)),
       snapshotClientName(quote),
       readSnapshotValue(quote.snapshot_cliente, "rut"),
-      quote.numero == null ? "pendiente numeracion" : "",
+      quote.numero == null ? "borrador pendiente numeracion" : "",
     ]
       .filter(Boolean)
       .join(" ");

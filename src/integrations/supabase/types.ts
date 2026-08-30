@@ -31,6 +31,7 @@ export type Database = {
           pie_pagina: string;
           rut: string;
           sitio_web: string;
+          tax_label: string;
           telefono: string;
           updated_at: string;
           user_id: string;
@@ -57,6 +58,7 @@ export type Database = {
           pie_pagina?: string;
           rut?: string;
           sitio_web?: string;
+          tax_label?: string;
           telefono?: string;
           updated_at?: string;
           user_id: string;
@@ -83,6 +85,7 @@ export type Database = {
           pie_pagina?: string;
           rut?: string;
           sitio_web?: string;
+          tax_label?: string;
           telefono?: string;
           updated_at?: string;
           user_id?: string;

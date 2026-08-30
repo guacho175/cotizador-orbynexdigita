@@ -121,12 +121,13 @@ describe("quote list selectors", () => {
     const clients = buildClientMap([
       client({ id: "client-a", nombre: "Comercialización Águila", rut: "12.345.678-9" }),
     ]);
-    const quotes = [quote({ id: "a", client_id: "client-a", numero: 200 })];
+    const quotes = [quote({ id: "a", client_id: "client-a", numero: 200, estado: "enviada" })];
 
     assert.equal(filterQuotes(quotes, "00200", clients).length, 1);
     assert.equal(filterQuotes(quotes, "200", clients).length, 1);
     assert.equal(filterQuotes(quotes, "aguila", clients).length, 1);
     assert.equal(filterQuotes(quotes, "12.345", clients).length, 1);
+    assert.equal(filterQuotes(quotes, "realizada", clients).length, 1);
   });
 
   test("paginates at 50 rows without mutating the source", () => {
