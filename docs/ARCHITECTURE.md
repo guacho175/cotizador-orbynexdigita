@@ -50,7 +50,7 @@ La integración con AI existe puramente como un _asistente de redacción_ para m
 ### 6. Ciclo de cotización y numeración
 
 - Una cotización se crea y autoguarda como borrador con `numero = null`. Guardar o editar nunca consume un correlativo.
-- Descargar el PDF definitivo sincroniza primero el borrador y ejecuta `assign_quote_number` una sola vez. La operación es idempotente. En un dispositivo compatible, compartir prepara el archivo y requiere un gesto final del usuario.
+- La primera descarga del PDF definitivo sincroniza el borrador y ejecuta `assign_quote_number` una sola vez. Las descargas posteriores usan la cotización emitida localmente y no dependen de la outbox. En un dispositivo compatible, compartir prepara el archivo y requiere un gesto final del usuario.
 - `estado` conserva los valores compatibles `borrador`, `enviada`, `aceptada` y `rechazada`, presentados como **Borrador**, **Realizada**, **Aceptada por el cliente** y **Pospuesta por el cliente**. La emisión establece `enviada`; solo una cotización emitida puede actualizarse a los estados comerciales posteriores.
 - El negocio define la etiqueta y porcentaje del recargo comercial (por ejemplo, IVA 19% u Honorarios 15,25%). Al emitir, el usuario confirma aplicarlo o generar el documento sin recargo. La cotización conserva el porcentaje decidido y el PDF usa la etiqueta congelada en el snapshot del negocio.
 - Los negocios nuevos comienzan en 200. Los negocios existentes continúan desde el mayor valor entre su contador actual, `MAX(numero) + 1` y 200; nunca se renumeran históricos.

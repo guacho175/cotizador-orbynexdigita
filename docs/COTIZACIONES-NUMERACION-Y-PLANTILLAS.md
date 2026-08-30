@@ -6,7 +6,7 @@
 2. La serie es global para el negocio e independiente del cliente.
 3. Los negocios existentes nunca se resetean ni se renumeran; continúan desde el siguiente número seguro.
 4. Un borrador no tiene número. Autoguardar, previsualizar y editar no consumen folios.
-5. Descargar el PDF definitivo emite la cotización y asigna el número de forma transaccional e idempotente. Compartir archivos se ofrece únicamente en dispositivos compatibles, después de preparar el PDF.
+5. La primera descarga del PDF definitivo emite la cotización y asigna el número de forma transaccional e idempotente. Las descargas posteriores regeneran el PDF desde la cotización ya emitida, sin guardar ni sincronizar. Compartir archivos se ofrece únicamente en dispositivos compatibles, después de preparar el PDF.
 6. Un número emitido y la plantilla congelada no se pueden modificar.
 7. Una cotización no emitida siempre es `borrador`. Emitirla establece `enviada`, presentado como **Realizada**. Luego puede marcarse como **Aceptada por el cliente** (`aceptada`) o **Pospuesta por el cliente** (`rechazada`).
 8. Antes de la primera emisión se decide aplicar el recargo configurado por el negocio o emitir sin recargo. La etiqueta del recargo no se asume: puede ser IVA, Honorarios u otra denominación comercial breve.

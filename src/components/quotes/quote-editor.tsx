@@ -167,18 +167,24 @@ export function QuoteEditor({ userId, business, initialQuote, initialItems }: Pr
   async function exportPdf(mode: "pdf" | "share", withTax: boolean) {
     setExporting(mode);
     try {
-      const draft = {
-        ...quote,
-        iva_percent: withTax ? Number(business.iva_percent) || 0 : 0,
-      };
-      const saved = await persist(false, draft);
-      if (!saved) return;
-      const issued = await issueQuote(saved.id);
-      lastPersisted.current = { quote: issued, items };
-      setQuote(issued);
+      const finalizedQuote = isIssuedQuote(quote)
+        ? quote
+        : await (async () => {
+            const draft = {
+              ...quote,
+              iva_percent: withTax ? Number(business.iva_percent) || 0 : 0,
+            };
+            const saved = await persist(false, draft);
+            if (!saved) return null;
+            const issued = await issueQuote(saved.id);
+            lastPersisted.current = { quote: issued, items };
+            setQuote(issued);
+            return issued;
+          })();
+      if (!finalizedQuote) return;
 
       const { buildQuotePdfFile, downloadQuotePdfFile } = await import("@/lib/pdf");
-      const props = buildPdfProps(issued);
+      const props = buildPdfProps(finalizedQuote);
       const file = await buildQuotePdfFile(props);
       if (mode === "share") {
         setPreparedShareFile(file);
