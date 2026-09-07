@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { DigitalRain } from "@/components/ui/digital-rain";
 
 export function PublicHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -17,13 +18,26 @@ export function PublicHeader() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 overflow-hidden ${
         isScrolled
-          ? "border-b border-white/[0.12] bg-deep-space/[0.92] shadow-[0_18px_50px_rgb(0_0_0_/_0.18)] backdrop-blur-xl"
-          : "bg-deep-space/80 backdrop-blur-md"
+          ? "border-b border-white/[0.12] bg-deep-space/[0.94] shadow-[0_18px_50px_rgb(0_0_0_/_0.25)] backdrop-blur-xl"
+          : "bg-deep-space/85 backdrop-blur-md border-b border-white/[0.06]"
       }`}
     >
-      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-5 sm:px-6">
+      {/* Efecto de lluvia de luz tecnológica */}
+      <DigitalRain
+        density={0.03}
+        speed={0.85}
+        dropLength={24}
+        maxOpacity={0.35}
+        showSplashes={false}
+        colors={["#00D4FF", "#1463FF", "#D946EF", "#38BDF8"]}
+      />
+
+      {/* Línea luminosa inferior */}
+      <div className="absolute bottom-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-electric-cyan/70 via-magenta-pulse/40 to-transparent" />
+
+      <div className="relative z-10 mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-5 sm:px-6">
         {/* Left — Brand */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex shrink-0 items-center" aria-label="Inicio">

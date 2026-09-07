@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { DigitalRain } from "@/components/ui/digital-rain";
 
 const PRODUCT_LINKS = [
   { label: "Características", href: "/#features" },
@@ -15,26 +16,54 @@ export function PublicFooter() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="relative z-10 bg-deep-space text-white">
-      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 sm:py-16">
+    <footer className="relative z-10 overflow-hidden bg-deep-space text-white">
+      {/* Efecto de lluvia de luz tecnológica */}
+      <DigitalRain
+        density={0.045}
+        speed={1.0}
+        dropLength={32}
+        maxOpacity={0.4}
+        showSplashes={true}
+        colors={["#00D4FF", "#1463FF", "#D946EF", "#60A5FA", "#A855F7"]}
+      />
+
+      {/* Orlas de luz ambiental */}
+      <div className="pointer-events-none absolute -top-24 left-1/4 h-72 w-72 rounded-full bg-electric-blue/15 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 right-10 h-80 w-80 rounded-full bg-magenta-pulse/10 blur-[130px]" />
+
+      {/* Divisor superior con láser de gradiente */}
+      <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-electric-cyan/80 via-magenta-pulse/60 to-transparent" />
+      <div className="pointer-events-none absolute top-0 inset-x-0 h-8 bg-gradient-to-b from-electric-cyan/5 to-transparent" />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-5 py-12 sm:px-6 sm:py-16">
         {/* Main grid */}
-        <div className="grid gap-10 border-t border-white/[0.12] pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
+        <div className="grid gap-10 border-t border-white/[0.08] pt-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr]">
           {/* Column 1 — Brand */}
           <div>
-            <img
-              src="/assets/logos/logo_orbynex_horizontal_blanco_v2.png"
-              alt="Orbynex Digital"
-              width={184}
-              height={53}
-              className="h-auto w-44"
-            />
+            <Link to="/" className="inline-block" aria-label="Inicio">
+              <img
+                src="/assets/logos/logo_orbynex_horizontal_blanco_v2_trim.png"
+                alt="Orbynex Digital"
+                width={618}
+                height={198}
+                className="h-9 w-auto"
+              />
+            </Link>
             <p className="mt-2 text-sm font-semibold tracking-wide text-electric-cyan/90">
               Cotizador Digital
             </p>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/[0.68]">
-              Crea cotizaciones profesionales de forma rápida y sencilla. Diseñado para equipos de
-              ventas que exigen velocidad y excelencia.
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/[0.68]">
+              Crea cotizaciones profesionales de alto nivel, opera 100% offline y acelera el cierre de negocios para tu empresa.
             </p>
+
+            {/* Badge de estado en tiempo real */}
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-medium text-emerald-400 backdrop-blur-md">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span>Sistemas 100% operativos &middot; Chile</span>
+            </div>
           </div>
 
           {/* Column 2 — Product */}
