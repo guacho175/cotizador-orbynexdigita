@@ -126,9 +126,15 @@ async function run() {
   await page.goto("file:///" + outputPath.replace(/\\/g, "/"));
   await page.waitForTimeout(1500);
   await page.screenshot({ path: previewPath, fullPage: false });
-  await browser.close();
+  const rootPath = resolve("Cotizacion_Orbynex_Demo.pdf");
+  const downloadsPath = resolve("C:/Users/galin/Downloads/Cotizacion_Orbynex_Demo.pdf");
+  const fs = await import("node:fs");
+  fs.copyFileSync(outputPath, rootPath);
+  fs.copyFileSync(outputPath, downloadsPath);
 
   console.log(`✅ PDF generado exitosamente en: ${outputPath}`);
+  console.log(`📂 Copiado a la raíz del proyecto: ${rootPath}`);
+  console.log(`📥 Copiado a tu carpeta de Descargas: ${downloadsPath}`);
   console.log(`📸 Preview PNG generado en: ${previewPath}`);
 }
 

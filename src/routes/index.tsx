@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import {
   CloudOff,
@@ -8,9 +9,17 @@ import {
   CheckCircle2,
   Lock,
   Wifi,
+  Play,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { InstallPrompt } from "@/components/layout/install-prompt";
 import { PublicHeader } from "@/components/layout/public-header";
 import { PublicFooter } from "@/components/layout/public-footer";
@@ -43,6 +52,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background relative selection:bg-electric-blue/30 overflow-x-hidden">
       {/* Luces líquidas de fondo */}
@@ -83,8 +94,18 @@ function Landing() {
                   Comenzar ahora gratis <ArrowRight className="ml-2 size-4.5" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="h-12 rounded-xl px-7 text-base font-semibold bg-background/80 backdrop-blur-md border-border hover:bg-muted w-full sm:w-auto">
-                <Link to="/auth">Acceder a mi cuenta</Link>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                onClick={() => setIsVideoOpen(true)}
+                className="h-12 rounded-xl px-6 text-base font-semibold bg-background/80 backdrop-blur-md border-border hover:bg-muted w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <Play className="size-4.5 fill-current text-electric-blue" />
+                Ver video demo (1:43)
+              </Button>
+              <Button asChild size="lg" variant="ghost" className="h-12 rounded-xl px-5 text-base font-semibold text-muted-foreground hover:text-foreground w-full sm:w-auto">
+                <Link to="/auth">Acceder</Link>
               </Button>
             </div>
 
@@ -102,7 +123,7 @@ function Landing() {
             <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-gradient-to-r from-electric-blue/25 via-magenta-pulse/20 to-electric-cyan/25 blur-3xl opacity-75" />
 
             {/* Ventana Estilo MacOS / SaaS */}
-            <div className="relative rounded-2xl border border-slate-200/90 bg-slate-900/95 shadow-[0_25px_60px_-15px_rgba(20,99,255,0.22)] overflow-hidden">
+            <div className="relative rounded-2xl border border-slate-200/90 bg-slate-900/95 shadow-[0_25px_60px_-15px_rgba(20,99,255,0.22)] overflow-hidden group">
               {/* Barra superior del navegador */}
               <div className="flex h-10 items-center justify-between border-b border-white/10 bg-slate-950/80 px-4">
                 <div className="flex items-center gap-2">
@@ -120,19 +141,47 @@ function Landing() {
                 </div>
               </div>
 
-              {/* Imagen Real del Panel */}
-              <div className="relative overflow-hidden bg-slate-100">
+              {/* Imagen Real del Panel con Overlay de Play Interactivo */}
+              <div
+                className="relative overflow-hidden bg-slate-100 cursor-pointer"
+                onClick={() => setIsVideoOpen(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setIsVideoOpen(true);
+                  }
+                }}
+                aria-label="Reproducir video demostración de Orbynex Digital"
+              >
                 <img
                   src="/assets/images/panel_real_mockup.png"
                   alt="Panel Real del Cotizador Orbynex"
                   width={1400}
                   height={900}
                   loading="eager"
-                  className="block w-full h-auto object-cover"
+                  className="block w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.015]"
                 />
 
+                {/* Overlay Play Central Flotante */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/25 group-hover:bg-slate-950/35 transition-all duration-300 backdrop-blur-[1.5px]">
+                  <div className="relative flex items-center justify-center">
+                    <span className="absolute size-20 rounded-full bg-electric-blue/40 blur-md animate-ping" />
+                    <div className="relative flex size-16 sm:size-20 items-center justify-center rounded-full bg-gradient-to-tr from-electric-blue to-cyan-400 text-white shadow-2xl shadow-blue-500/50 transition-all duration-300 group-hover:scale-110 group-hover:shadow-cyan-400/60">
+                      <Play className="size-7 sm:size-8 fill-white translate-x-0.5" />
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-full border border-white/20 bg-slate-950/85 px-4 py-1.5 backdrop-blur-md transition-transform duration-300 group-hover:scale-105 shadow-xl">
+                    <p className="text-xs sm:text-sm font-semibold text-white flex items-center gap-2">
+                      <Sparkles className="size-4 text-cyan-400" />
+                      Ver video demo con IA en acción (1:43 min)
+                    </p>
+                  </div>
+                </div>
+
                 {/* Badges Flotantes Fidedignos */}
-                <div className="hidden sm:flex absolute top-4 right-4 items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-slate-900/90 px-3.5 py-2 text-white shadow-xl backdrop-blur-md">
+                <div className="hidden sm:flex absolute top-4 right-4 items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-slate-900/90 px-3.5 py-2 text-white shadow-xl backdrop-blur-md pointer-events-none">
                   <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400">
                     <CheckCircle2 className="size-4" />
                   </div>
@@ -142,7 +191,7 @@ function Landing() {
                   </div>
                 </div>
 
-                <div className="hidden sm:flex absolute bottom-4 left-4 items-center gap-2.5 rounded-xl border border-blue-500/30 bg-slate-900/90 px-3.5 py-2 text-white shadow-xl backdrop-blur-md">
+                <div className="hidden sm:flex absolute bottom-4 left-4 items-center gap-2.5 rounded-xl border border-blue-500/30 bg-slate-900/90 px-3.5 py-2 text-white shadow-xl backdrop-blur-md pointer-events-none">
                   <div className="flex size-7 items-center justify-center rounded-lg bg-blue-500/20 text-cyan-400">
                     <Wifi className="size-4" />
                   </div>
@@ -289,6 +338,34 @@ function Landing() {
             </div>
           </div>
         </section>
+
+        {/* ================= MODAL DEL VIDEO DEMO (YOUTUBE PRIVACY LAZY LOAD) ================= */}
+        <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
+          <DialogContent className="sm:max-w-4xl max-w-5xl w-[95vw] p-0 overflow-hidden bg-slate-950 border-slate-800 shadow-2xl rounded-2xl">
+            <DialogHeader className="px-5 py-3.5 border-b border-white/10 bg-slate-900/90 flex flex-row items-center justify-between">
+              <div className="text-left pr-8">
+                <DialogTitle className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Demostración Oficial — Cotizador Orbynex con Inteligencia Artificial
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-400 mt-0.5">
+                  Tutorial paso a paso • Registro, Asistente de IA y emisión de PDF ejecutivo en 1 página
+                </DialogDescription>
+              </div>
+            </DialogHeader>
+            <div className="relative aspect-video w-full bg-black">
+              {isVideoOpen && (
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/AS49H33MIk4?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+                  title="Demostración de Orbynex Digital — Cotizador con IA"
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       
       <PublicFooter />
