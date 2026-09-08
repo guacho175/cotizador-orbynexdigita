@@ -356,7 +356,7 @@ function Landing() {
             <div className="relative aspect-video w-full bg-black">
               {isVideoOpen && (
                 <iframe
-                  src="https://www.youtube-nocookie.com/embed/AS49H33MIk4?autoplay=1&rel=0&modestbranding=1&playsinline=1"
+                  src="https://www.youtube-nocookie.com/embed/AS49H33MIk4?autoplay=1&rel=0&modestbranding=1&playsinline=1&vq=hd1080"
                   title="Demostración de Orbynex Digital — Cotizador con IA"
                   className="w-full h-full border-0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
