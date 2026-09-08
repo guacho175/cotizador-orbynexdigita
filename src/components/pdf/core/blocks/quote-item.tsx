@@ -1,329 +1,382 @@
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
-import { lineTotal, money } from "@/lib/format";
+import { money } from "@/lib/format";
 import type { QuoteItem } from "@/lib/types";
 import { PDF_COLORS } from "../tokens";
 
-const MAX_FRAGMENT_CHARACTERS = 760;
-const SHORT_ITEM_CHARACTERS = 700;
-
-const styles = StyleSheet.create({
-  itemBlock: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
-  },
-  continuationBlock: {
-    borderTopWidth: 0.5,
-    borderTopColor: PDF_COLORS.line,
-    paddingTop: 7,
-  },
-  itemTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 4,
-  },
-  contentColumn: { flex: 1, paddingRight: 8 },
-  priceCol: { width: 90, alignItems: "flex-end" },
-  priceValue: { fontFamily: "Helvetica-Bold", fontSize: 11 },
-  priceCurrency: {
-    fontSize: 7,
-    color: PDF_COLORS.muted,
-    marginTop: 2,
-    letterSpacing: 0.5,
-  },
-  priceQty: { fontSize: 7.5, color: PDF_COLORS.muted, marginTop: 4 },
-  continuationPrice: {
-    fontSize: 6.5,
-    color: PDF_COLORS.muted,
-    marginTop: 1,
-    textAlign: "right",
-  },
-  continuationLabel: {
-    color: PDF_COLORS.amber,
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7,
-    letterSpacing: 0.5,
-    marginBottom: 3,
-  },
-  itemTitle: {
-    fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-    color: PDF_COLORS.navy,
-    marginBottom: 2,
-    textTransform: "uppercase",
-    textAlign: "justify",
-  },
-  itemSubtitle: {
-    fontSize: 8.5,
-    color: PDF_COLORS.amber,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 6,
-    textAlign: "justify",
-  },
-  itemParagraph: {
-    fontSize: 9,
-    lineHeight: 1.4,
-    marginBottom: 6,
-    textAlign: "justify",
-  },
-  itemIncludesHeader: {
-    fontSize: 9,
-    fontFamily: "Helvetica-Bold",
-    marginBottom: 4,
-    textAlign: "justify",
-  },
-  bulletRow: {
-    flexDirection: "row",
-    marginBottom: 3,
-    paddingRight: 4,
-    alignItems: "flex-start",
-  },
-  bulletCheck: {
-    width: 12,
-    height: 12,
-    backgroundColor: PDF_COLORS.amber,
-    color: PDF_COLORS.paper,
-    fontSize: 8,
-    textAlign: "center",
-    borderRadius: 2,
-    marginRight: 6,
-    marginTop: 1,
-  },
-  bulletText: { fontSize: 9, flex: 1, lineHeight: 1.3, textAlign: "justify" },
-});
-
-interface ParsedItemDescription {
+export interface ParsedItemDescription {
   title?: string;
   subtitle?: string;
   paragraph?: string;
   includesHeader?: string;
-  bullets?: string[];
-  plain?: string;
-}
-
-interface DescriptionFragment {
-  title?: string;
-  subtitle?: string;
-  paragraphs: string[];
-  includesHeader?: string;
   bullets: string[];
   plain?: string;
-  continuation: boolean;
 }
 
-/** Parses the structured convention produced by the copy-improvement flow. */
-function parseItemDescription(raw: string): ParsedItemDescription {
-  const lines = raw
+export function parseDescription(raw: string): ParsedItemDescription {
+  const lines = (raw || "")
     .split(/\r?\n/)
-    .map((line) => line.trim())
+    .map((l) => l.trim())
     .filter(Boolean);
 
   const bulletStart = lines.findIndex((line) => /^[-•]\s+/.test(line));
-  if (lines.length < 2 || bulletStart <= 0) return { plain: raw };
+  if (bulletStart === -1) {
+    if (lines.length > 1) {
+      return {
+        title: lines[0],
+        paragraph: lines.slice(1).join(" "),
+        bullets: [],
+      };
+    }
+    return { plain: raw || "-", bullets: [] };
+  }
 
-  const hasHeader = /incluye:?$/i.test(lines[bulletStart - 1]);
-  const bodyEnd = hasHeader ? bulletStart - 1 : bulletStart;
+  const bullets = lines.slice(bulletStart).map((l) => l.replace(/^[-•]\s+/, ""));
+  const headerIdx = lines.findIndex((l, i) => i < bulletStart && /incluye:?$/i.test(l));
+  const hasHeader = headerIdx !== -1;
+  const bodyEnd = hasHeader ? headerIdx : bulletStart;
   const bodyLines = lines.slice(0, bodyEnd);
-  if (bodyLines.length === 0) return { plain: raw };
 
-  const bullets = lines.slice(bulletStart).map((line) => line.replace(/^[-•]\s+/, ""));
-  const [title, ...rest] = bodyLines;
-  const hasSubtitle = Boolean(rest[0]?.includes("|") && rest[0].length < 90);
+  const title = bodyLines[0];
+  const rest = bodyLines.slice(1);
+  const hasSubtitle = Boolean(rest[0]?.includes("|") && rest[0].length < 100);
 
   return {
     title,
     subtitle: hasSubtitle ? rest[0] : undefined,
     paragraph: (hasSubtitle ? rest.slice(1) : rest).join(" ").trim() || undefined,
-    includesHeader: hasHeader ? lines[bulletStart - 1] : "El servicio incluye:",
+    includesHeader: hasHeader ? lines[headerIdx] : "El servicio incluye:",
     bullets,
   };
 }
 
-function hardSplit(text: string, maximum: number): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  const chunks: string[] = [];
-  let current = "";
+export type SpacingTier = "extra-spacious" | "spacious" | "compact" | "multipage";
 
-  for (const word of words) {
-    if (!current) {
-      current = word;
-      continue;
-    }
-    if (`${current} ${word}`.length <= maximum) {
-      current = `${current} ${word}`;
-    } else {
-      chunks.push(current);
-      current = word;
-    }
-  }
-  if (current) chunks.push(current);
-  return chunks.length ? chunks : [text];
+export interface LayoutMetrics {
+  tier: SpacingTier;
+  clientCardPaddingV: number;
+  clientCardMarginB: number;
+  clientNameSize: number;
+  tableHeaderPaddingV: number;
+  tableHeaderMarginB: number;
+  itemPaddingV: number;
+  itemMarginB: number;
+  itemTitleSize: number;
+  itemSubtitleSize: number;
+  itemTextSize: number;
+  itemLineHeight: number;
+  bulletMarginB: number;
+  bulletDotSize: number;
+  closingMarginT: number;
+  paymentPadding: number;
+  observationSize: number;
+  totalsPaddingV: number;
+  grandTotalBarPaddingV: number;
+  grandTotalSize: number;
+  spacerGrow: number;
+  minSpacerHeight: number;
+  splitIndex: number | null;
 }
 
-/** Splits at paragraph/sentence boundaries before falling back to words. */
-function semanticChunks(text: string, maximum = MAX_FRAGMENT_CHARACTERS): string[] {
-  const units = text
-    .split(/(?:\r?\n){2,}|(?<=[.!?])\s+/)
-    .map((unit) => unit.trim())
-    .filter(Boolean)
-    .flatMap((unit) => (unit.length > maximum ? hardSplit(unit, maximum) : [unit]));
+export function computeLayoutMetrics(items: QuoteItem[]): LayoutMetrics {
+  const count = items.length;
+  let totalBullets = 0;
+  let totalLines = 0;
 
-  const chunks: string[] = [];
-  let current = "";
-  for (const unit of units) {
-    if (!current) {
-      current = unit;
-    } else if (`${current} ${unit}`.length <= maximum) {
-      current = `${current} ${unit}`;
-    } else {
-      chunks.push(current);
-      current = unit;
-    }
+  for (const item of items) {
+    const parsed = parseDescription(item.descripcion || "");
+    totalBullets += parsed.bullets.length;
+    totalLines += (item.descripcion || "").split(/\r?\n/).filter(Boolean).length;
   }
-  if (current) chunks.push(current);
-  return chunks.length ? chunks : [text.trim() || "-"];
+
+  // Typographic points weight formula
+  const contentPoints = totalLines * 11 + totalBullets * 12 + count * 24;
+
+  // RULE 1: 1-2 items (Short or AI)
+  // If 1-2 short items: contentPoints < 160
+  if (count <= 2 && contentPoints < 160) {
+    return {
+      tier: "extra-spacious",
+      clientCardPaddingV: 10,
+      clientCardMarginB: 14,
+      clientNameSize: 10.5,
+      tableHeaderPaddingV: 6,
+      tableHeaderMarginB: 8,
+      itemPaddingV: 22,
+      itemMarginB: 14,
+      itemTitleSize: 10,
+      itemSubtitleSize: 8,
+      itemTextSize: 8.5,
+      itemLineHeight: 1.44,
+      bulletMarginB: 4,
+      bulletDotSize: 4,
+      closingMarginT: 18,
+      paymentPadding: 8.5,
+      observationSize: 7.4,
+      totalsPaddingV: 4.8,
+      grandTotalBarPaddingV: 8,
+      grandTotalSize: 12,
+      spacerGrow: 1,
+      minSpacerHeight: 20,
+      splitIndex: null,
+    };
+  }
+
+  // If 2 AI items (or 3 short items):
+  if (count <= 2 || (count === 3 && totalBullets <= 3)) {
+    return {
+      tier: "spacious",
+      clientCardPaddingV: 9,
+      clientCardMarginB: 12,
+      clientNameSize: 10,
+      tableHeaderPaddingV: 5.5,
+      tableHeaderMarginB: 7,
+      itemPaddingV: 19,
+      itemMarginB: 14,
+      itemTitleSize: 9.8,
+      itemSubtitleSize: 8,
+      itemTextSize: 7.9,
+      itemLineHeight: 1.38,
+      bulletMarginB: 3.6,
+      bulletDotSize: 3.8,
+      closingMarginT: 16,
+      paymentPadding: 7.5,
+      observationSize: 7.2,
+      totalsPaddingV: 4.2,
+      grandTotalBarPaddingV: 7.5,
+      grandTotalSize: 11.5,
+      spacerGrow: 1,
+      minSpacerHeight: 14,
+      splitIndex: null,
+    };
+  }
+
+  // RULE 2: 3-4 items (or 5 short items with no bullets): ALWAYS 1 PAGE!
+  const isFiveShort = count === 5 && totalBullets === 0;
+  if (count <= 4 || isFiveShort) {
+    const isHeavyFour = count === 4 && totalBullets >= 10;
+    return {
+      tier: "compact",
+      clientCardPaddingV: isHeavyFour ? 5 : 5.8,
+      clientCardMarginB: isHeavyFour ? 5 : 6,
+      clientNameSize: isHeavyFour ? 8.8 : 9.2,
+      tableHeaderPaddingV: isHeavyFour ? 3.8 : 4.2,
+      tableHeaderMarginB: isHeavyFour ? 3 : 4,
+      itemPaddingV: isHeavyFour ? 4.5 : 5.8,
+      itemMarginB: 0,
+      itemTitleSize: isHeavyFour ? 8.5 : 8.8,
+      itemSubtitleSize: 7.1,
+      itemTextSize: isHeavyFour ? 7.1 : 7.3,
+      itemLineHeight: isHeavyFour ? 1.18 : 1.24,
+      bulletMarginB: isHeavyFour ? 1.4 : 1.8,
+      bulletDotSize: 3.2,
+      closingMarginT: isHeavyFour ? 6 : 8,
+      paymentPadding: isHeavyFour ? 4.8 : 5.5,
+      observationSize: 6.6,
+      totalsPaddingV: isHeavyFour ? 2.2 : 2.6,
+      grandTotalBarPaddingV: isHeavyFour ? 4.8 : 5.5,
+      grandTotalSize: isHeavyFour ? 10 : 10.5,
+      spacerGrow: isHeavyFour ? 0 : 1,
+      minSpacerHeight: isHeavyFour ? 2 : 5,
+      splitIndex: null, // NEVER split 3 or 4 items!
+    };
+  }
+
+  // RULE 3: 5+ items with AI (or 6+ items): MULTIPAGE
+  // Page 1 gets 3 or 4 items, Page 2 gets the remainder + Closing!
+  const splitIndex = count === 5 ? 3 : Math.min(4, Math.ceil(count / 2));
+  return {
+    tier: "multipage",
+    clientCardPaddingV: 6,
+    clientCardMarginB: 7,
+    clientNameSize: 9.3,
+    tableHeaderPaddingV: 4.5,
+    tableHeaderMarginB: 4,
+    itemPaddingV: 7.5,
+    itemMarginB: 4,
+    itemTitleSize: 8.8,
+    itemSubtitleSize: 7.2,
+    itemTextSize: 7.4,
+    itemLineHeight: 1.26,
+    bulletMarginB: 2.2,
+    bulletDotSize: 3.5,
+    closingMarginT: 10,
+    paymentPadding: 5.5,
+    observationSize: 6.8,
+    totalsPaddingV: 2.8,
+    grandTotalBarPaddingV: 5.5,
+    grandTotalSize: 10.5,
+    spacerGrow: 0,
+    minSpacerHeight: 0,
+    splitIndex,
+  };
 }
 
-function descriptionFragments(text: string): DescriptionFragment[] {
-  const parsed = parseItemDescription(text || "");
-  if (parsed.plain !== undefined) {
-    return semanticChunks(parsed.plain).map((plain, index) => ({
-      paragraphs: [],
-      bullets: [],
-      plain,
-      continuation: index > 0,
-    }));
-  }
-
-  const fragments: DescriptionFragment[] = [];
-  const paragraphs = parsed.paragraph ? semanticChunks(parsed.paragraph) : [];
-  const bullets = (parsed.bullets || []).flatMap((bullet) =>
-    semanticChunks(bullet, Math.floor(MAX_FRAGMENT_CHARACTERS * 0.75)),
-  );
-
-  if (!paragraphs.length && !bullets.length) {
-    paragraphs.push("");
-  }
-
-  for (const paragraph of paragraphs) {
-    fragments.push({
-      title: fragments.length === 0 ? parsed.title : undefined,
-      subtitle: fragments.length === 0 ? parsed.subtitle : undefined,
-      paragraphs: paragraph ? [paragraph] : [],
-      bullets: [],
-      continuation: fragments.length > 0,
-    });
-  }
-
-  let current = fragments.at(-1);
-  for (const bullet of bullets) {
-    const currentLength =
-      (current?.paragraphs.join(" ").length || 0) + (current?.bullets.join(" ").length || 0);
-    if (!current || currentLength + bullet.length > MAX_FRAGMENT_CHARACTERS) {
-      current = {
-        paragraphs: [],
-        includesHeader: parsed.includesHeader,
-        bullets: [],
-        continuation: fragments.length > 0,
-      };
-      fragments.push(current);
-    }
-    current.includesHeader = current.includesHeader || parsed.includesHeader;
-    current.bullets.push(bullet);
-  }
-
-  return fragments;
+export interface QuoteItemBlockProps {
+  item: QuoteItem;
+  metrics?: LayoutMetrics;
+  isLast?: boolean;
 }
 
-function FragmentDescription({ fragment }: { fragment: DescriptionFragment }) {
+export function QuoteItemBlock({ item, metrics, isLast = false }: QuoteItemBlockProps) {
+  const parsed = parseDescription(item.descripcion || "");
+
+  const itemPaddingV = metrics?.itemPaddingV ?? 5.5;
+  const itemMarginB = isLast ? 0 : (metrics?.itemMarginB ?? 0);
+  const itemTitleSize = metrics?.itemTitleSize ?? 8.8;
+  const itemSubtitleSize = metrics?.itemSubtitleSize ?? 7.3;
+  const itemTextSize = metrics?.itemTextSize ?? 7.4;
+  const itemLineHeight = metrics?.itemLineHeight ?? 1.25;
+  const bulletMarginB = metrics?.bulletMarginB ?? 1.8;
+  const bulletDotSize = metrics?.bulletDotSize ?? 3.5;
+
   return (
-    <>
-      {fragment.continuation ? (
-        <Text style={styles.continuationLabel}>CONTINUACIÓN DEL PRODUCTO</Text>
-      ) : null}
-      {fragment.title ? <Text style={styles.itemTitle}>{fragment.title}</Text> : null}
-      {fragment.subtitle ? <Text style={styles.itemSubtitle}>{fragment.subtitle}</Text> : null}
-      {fragment.plain ? (
-        <Text style={styles.itemParagraph} orphans={3} widows={3}>
-          {fragment.plain}
-        </Text>
-      ) : null}
-      {fragment.paragraphs.map((paragraph, index) => (
-        <Text key={index} style={styles.itemParagraph} orphans={3} widows={3}>
-          {paragraph}
-        </Text>
-      ))}
-      {fragment.bullets.length ? (
-        <View>
-          <Text style={styles.itemIncludesHeader}>{fragment.includesHeader}</Text>
-          {fragment.bullets.map((bullet, index) => (
-            <View key={index} style={styles.bulletRow} wrap={false}>
-              <Text style={styles.bulletCheck}>✓</Text>
-              <Text style={styles.bulletText} orphans={2} widows={2}>
-                {bullet}
-              </Text>
+    <View
+      style={{
+        paddingHorizontal: 8,
+        paddingVertical: itemPaddingV,
+        borderBottomWidth: 0.5,
+        borderBottomColor: PDF_COLORS.line,
+        marginBottom: itemMarginB,
+      }}
+      wrap={false}
+      minPresenceAhead={35}
+    >
+      <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          {parsed.title ? (
+            <Text
+              style={{
+                fontSize: itemTitleSize,
+                fontFamily: "Helvetica-Bold",
+                color: PDF_COLORS.ink,
+                marginBottom: 2.5,
+                lineHeight: 1.15,
+              }}
+            >
+              {parsed.title}
+            </Text>
+          ) : null}
+          {parsed.subtitle ? (
+            <Text
+              style={{
+                fontSize: itemSubtitleSize,
+                fontFamily: "Helvetica-Bold",
+                color: PDF_COLORS.amber,
+                marginBottom: 2.5,
+              }}
+            >
+              {parsed.subtitle}
+            </Text>
+          ) : null}
+          {parsed.plain ? (
+            <Text
+              style={{
+                fontSize: itemTextSize,
+                lineHeight: itemLineHeight,
+                color: PDF_COLORS.slate700,
+                marginBottom: 2,
+              }}
+            >
+              {parsed.plain}
+            </Text>
+          ) : null}
+          {parsed.paragraph ? (
+            <Text
+              style={{
+                fontSize: itemTextSize,
+                lineHeight: itemLineHeight,
+                color: PDF_COLORS.slate700,
+                marginBottom: 3,
+              }}
+            >
+              {parsed.paragraph}
+            </Text>
+          ) : null}
+
+          {parsed.bullets.length > 0 ? (
+            <View>
+              {parsed.includesHeader ? (
+                <Text
+                  style={{
+                    fontSize: itemSubtitleSize,
+                    fontFamily: "Helvetica-Bold",
+                    color: PDF_COLORS.ink,
+                    marginBottom: 2,
+                  }}
+                >
+                  {parsed.includesHeader}
+                </Text>
+              ) : null}
+              {parsed.bullets.map((bullet, idx) => (
+                <View
+                  key={idx}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    marginBottom: bulletMarginB,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: bulletDotSize,
+                      height: bulletDotSize,
+                      borderRadius: bulletDotSize / 2,
+                      backgroundColor: PDF_COLORS.amber,
+                      marginRight: 5,
+                      marginTop: 3,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: itemTextSize,
+                      lineHeight: itemLineHeight,
+                      color: PDF_COLORS.slate700,
+                    }}
+                  >
+                    {bullet}
+                  </Text>
+                </View>
+              ))}
             </View>
-          ))}
+          ) : null}
         </View>
-      ) : null}
-    </>
-  );
-}
 
-function Price({ item, continuation }: { item: QuoteItem; continuation: boolean }) {
-  if (continuation) {
-    return <Text style={styles.continuationPrice}>Valor en el primer bloque</Text>;
-  }
-
-  return (
-    <>
-      <Text style={styles.priceValue}>{money(item.precio_unitario)}</Text>
-      <Text style={styles.priceCurrency}>CLP</Text>
-      {item.cantidad > 1 ? (
-        <Text style={styles.priceQty}>
-          Cant: {item.cantidad} | {money(lineTotal(item.cantidad, item.precio_unitario))}
-        </Text>
-      ) : null}
-    </>
-  );
-}
-
-export function QuoteItemBlock({ item }: { item: QuoteItem }) {
-  const fragments = descriptionFragments(item.descripcion);
-  const isShort =
-    fragments.length === 1 && (item.descripcion?.length || 0) <= SHORT_ITEM_CHARACTERS;
-
-  if (isShort) {
-    return (
-      <View style={styles.itemBlock} wrap={false} minPresenceAhead={72}>
-        <View style={styles.itemTopRow}>
-          <View style={styles.contentColumn}>
-            <FragmentDescription fragment={fragments[0]} />
-          </View>
-          <View style={styles.priceCol}>
-            <Price item={item} continuation={false} />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.itemBlock} minPresenceAhead={88}>
-      {fragments.map((fragment, index) => (
-        <View
-          key={index}
-          style={index === 0 ? styles.itemTopRow : [styles.itemTopRow, styles.continuationBlock]}
-          wrap={false}
-          minPresenceAhead={index === 0 ? 88 : 48}
+        <Text
+          style={{
+            width: 36,
+            fontSize: itemTextSize,
+            color: PDF_COLORS.slate700,
+            textAlign: "center",
+            paddingTop: 1,
+          }}
         >
-          <View style={styles.contentColumn}>
-            <FragmentDescription fragment={fragment} />
-          </View>
-          <View style={styles.priceCol}>
-            <Price item={item} continuation={index > 0} />
-          </View>
-        </View>
-      ))}
+          {item.cantidad}
+        </Text>
+        <Text
+          style={{
+            width: 68,
+            fontSize: itemTextSize + 0.5,
+            color: PDF_COLORS.slate700,
+            textAlign: "right",
+            paddingTop: 1,
+          }}
+        >
+          {money(item.precio_unitario)}
+        </Text>
+        <Text
+          style={{
+            width: 72,
+            fontSize: itemTextSize + 1,
+            fontFamily: "Helvetica-Bold",
+            color: PDF_COLORS.ink,
+            textAlign: "right",
+            paddingTop: 1,
+          }}
+        >
+          {money(item.cantidad * item.precio_unitario)}
+        </Text>
+      </View>
     </View>
   );
 }

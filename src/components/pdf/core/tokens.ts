@@ -1,18 +1,25 @@
 export const PDF_COLORS = {
   navy: "#0b2545",
-  amber: "#e0930f",
-  line: "#dbe2ea",
-  muted: "#5b6b7f",
-  ink: "#14202e",
+  amber: "#d97706",
+  amberLight: "#fffbeb",
+  amberBorder: "#fde68a",
+  line: "#e2e8f0",
+  muted: "#64748b",
+  ink: "#0f172a",
   paper: "#ffffff",
+  slate700: "#334155",
+  slate500: "#64748b",
+  slate400: "#94a3b8",
+  slate100: "#f1f5f9",
+  slate50: "#f8fafc",
 } as const;
 
 export const PDF_LAYOUT = {
-  pageHorizontal: 34,
-  pageTop: 122,
-  pageBottom: 64,
-  headerTop: 28,
-  footerBottom: 24,
+  pageHorizontal: 28,
+  pageTop: 92,
+  pageBottom: 42,
+  headerTop: 18,
+  footerBottom: 14,
 } as const;
 
 export function contrastColor(background: string): string {

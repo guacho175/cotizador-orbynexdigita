@@ -42,8 +42,14 @@ supabase/.temp/
 .vercel
 .env*
 
-# Generated QA artifacts
+# Generated QA artifacts and media recordings
 tmp/
+demo_recordings/
+public/assets/videos/
+public/assets/qa_*/
+public/assets/perfect_balance/
+public/assets/prototipo_*
+public/assets/comparativa_*
 
 # Multi-account CLI auth
 .project-auth
