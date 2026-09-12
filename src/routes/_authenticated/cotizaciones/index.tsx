@@ -1,7 +1,15 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Archive, ArchiveRestore, ChevronLeft, ChevronRight, Copy, Search } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  RefreshCw,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/db";
 import { archiveQuote, duplicateQuote, restoreQuote, updateQuoteStatus } from "@/lib/repo";
@@ -11,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { QuoteStatusControl } from "@/components/quotes/quote-status-control";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 import {
   buildClientMap,
   filterQuotes,
@@ -153,6 +162,7 @@ function QuoteListSection({
 
 function QuotesList() {
   const { user } = Route.useRouteContext();
+  const { hasSyncedOnce, isInitialSyncing } = useSyncStatus(user.id);
   const [term, setTerm] = useState("");
   const deferredTerm = useDeferredValue(term);
   const [showArchived, setShowArchived] = useState(false);
@@ -170,6 +180,8 @@ function QuotesList() {
     () => data?.quotes.filter((quote) => Boolean(quote.is_archived) === showArchived) ?? [],
     [data?.quotes, showArchived],
   );
+  const isInitialLoading =
+    data === undefined || (!hasSyncedOnce && modeQuotes.length === 0 && isInitialSyncing);
   const filteredQuotes = useMemo(
     () => sortQuotesByNumber(filterQuotes(modeQuotes, deferredTerm, clientsById)),
     [clientsById, deferredTerm, modeQuotes],
@@ -272,10 +284,11 @@ function QuotesList() {
         </div>
       </div>
 
-      {data === undefined ? (
+      {isInitialLoading ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Cargando cotizaciones…
+          <CardContent className="flex flex-col items-center justify-center gap-2.5 py-12 text-center text-sm text-muted-foreground">
+            <RefreshCw className="size-5 animate-spin text-primary" />
+            <span>Sincronizando cotizaciones…</span>
           </CardContent>
         </Card>
       ) : filteredQuotes.length === 0 ? (

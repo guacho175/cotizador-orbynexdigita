@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
-import { CheckCircle2, ChevronDown, Clock, FileText, Users } from "lucide-react";
+import { CheckCircle2, ChevronDown, Clock, FileText, RefreshCw, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatDate, money, quoteNumber } from "@/lib/format";
 import type { Quote } from "@/lib/types";
 import { normalizeQuoteStatus, quoteStatusLabel } from "@/lib/quote-lifecycle";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { InstallPrompt } from "@/components/layout/install-prompt";
 import { OnboardingAlert } from "@/components/layout/onboarding-alert";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 import {
   buildClientMap,
   groupQuotesByClient,
@@ -135,6 +137,7 @@ function ClientQuotesAccordion({
 
 function Panel() {
   const { user } = Route.useRouteContext();
+  const { hasSyncedOnce, isInitialSyncing } = useSyncStatus(user.id);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
   const data = useLiveQuery(async () => {
     const [quotes, clients] = await Promise.all([
@@ -154,6 +157,9 @@ function Panel() {
   );
   const acceptedQuotes = activeQuotes.filter((quote) => quote.estado === "aceptada");
   const sentQuotes = activeQuotes.filter((quote) => normalizeQuoteStatus(quote) === "enviada");
+
+  const isInitialLoading =
+    data === undefined || (!hasSyncedOnce && activeQuotes.length === 0 && isInitialSyncing);
 
   const cards = [
     { label: "Cotizaciones", value: String(activeQuotes.length), icon: FileText },
@@ -196,7 +202,11 @@ function Panel() {
               </span>
               <div>
                 <p className="text-xs text-muted-foreground">{card.label}</p>
-                <p className="text-lg font-semibold tabular-nums">{card.value}</p>
+                {isInitialLoading ? (
+                  <Skeleton className="mt-1.5 h-6 w-16" />
+                ) : (
+                  <p className="text-lg font-semibold tabular-nums">{card.value}</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -213,10 +223,11 @@ function Panel() {
           </p>
         </div>
 
-        {data === undefined ? (
+        {isInitialLoading ? (
           <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              Cargando cotizaciones…
+            <CardContent className="flex flex-col items-center justify-center gap-2.5 py-12 text-center text-sm text-muted-foreground">
+              <RefreshCw className="size-5 animate-spin text-primary" />
+              <span>Sincronizando tus cotizaciones…</span>
             </CardContent>
           </Card>
         ) : groups.length === 0 ? (

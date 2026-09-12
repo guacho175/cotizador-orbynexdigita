@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppNav } from "@/components/layout/app-nav";
 import { SyncIndicator } from "@/components/layout/sync-indicator";
 import { Button } from "@/components/ui/button";
-import { startSync } from "@/lib/sync";
+import { startSync, ensureInitialSync, resetSyncState } from "@/lib/sync";
 import { clearLocalData } from "@/lib/db";
 
 import { initAuthState, getAuthUser } from "@/lib/auth-state";
@@ -15,9 +15,11 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     await initAuthState();
     const user = getAuthUser();
-    
+
     if (!user) throw redirect({ to: "/auth" });
-    
+
+    await ensureInitialSync(user.id);
+
     return { user };
   },
   component: AuthenticatedLayout,
@@ -34,6 +36,7 @@ function AuthenticatedLayout() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    resetSyncState();
     await clearLocalData();
     navigate({ to: "/auth", replace: true });
   }
@@ -48,10 +51,18 @@ function AuthenticatedLayout() {
           </Link>
           <AppNav variant="sidebar" />
           <div className="mt-auto space-y-3">
-            <Link to="/perfil" className="block truncate px-3 text-xs text-muted-foreground hover:text-foreground hover:underline">
+            <Link
+              to="/perfil"
+              className="block truncate px-3 text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
               {user.email}
             </Link>
-            <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => void signOut()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={() => void signOut()}
+            >
               <LogOut className="size-4" />
               Cerrar sesión
             </Button>

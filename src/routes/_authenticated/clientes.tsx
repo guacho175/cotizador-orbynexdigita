@@ -14,12 +14,16 @@ import { ClientsTable } from "@/components/clientes/ClientsTable";
 import { ClientMobileCard } from "@/components/clientes/ClientMobileCard";
 import { ClientFormDialog } from "@/components/clientes/ClientFormDialog";
 import { ClientDeleteDialog } from "@/components/clientes/ClientDeleteDialog";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
   head: () => ({
     meta: [
       { title: "Clientes — Cotiza" },
-      { name: "description", content: "Administra tu cartera de clientes: RUT, contacto, dirección y notas." },
+      {
+        name: "description",
+        content: "Administra tu cartera de clientes: RUT, contacto, dirección y notas.",
+      },
       { property: "og:title", content: "Clientes — Cotiza" },
       { property: "og:description", content: "Administra tu cartera de clientes." },
       { property: "og:type", content: "website" },
@@ -31,12 +35,15 @@ export const Route = createFileRoute("/_authenticated/clientes")({
 
 function ClientsPage() {
   const { user } = Route.useRouteContext();
-  const rawClients = useLiveQuery(() => db.clients.where("user_id").equals(user.id).toArray(), [user.id]);
-  
+  const rawClients = useLiveQuery(
+    () => db.clients.where("user_id").equals(user.id).toArray(),
+    [user.id],
+  );
+
   const [term, setTerm] = useState("");
   const deferredTerm = useDeferredValue(term);
   const [page, setPage] = useState(0);
-  
+
   const [draft, setDraft] = useState<Client | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
@@ -45,11 +52,13 @@ function ClientsPage() {
     setPage(0);
   }, [deferredTerm]);
 
-  const isLoading = rawClients === undefined;
-  
+  const { hasSyncedOnce, isInitialSyncing } = useSyncStatus(user.id);
+  const isLoading =
+    rawClients === undefined || (!hasSyncedOnce && rawClients.length === 0 && isInitialSyncing);
+
   const sorted = rawClients ? sortClients(rawClients) : [];
   const filtered = filterClients(sorted, deferredTerm);
-  
+
   const PAGE_SIZE = 50;
   const paginated = paginateClients(filtered, page, PAGE_SIZE);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -98,7 +107,9 @@ function ClientsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Clientes</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {rawClients?.length === 1 ? "1 cliente registrado" : `${rawClients?.length ?? 0} clientes registrados`}
+            {rawClients?.length === 1
+              ? "1 cliente registrado"
+              : `${rawClients?.length ?? 0} clientes registrados`}
           </p>
         </div>
         <ClientSearch term={term} setTerm={setTerm} onNew={handleNew} />
@@ -111,9 +122,12 @@ function ClientsPage() {
           <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
             <Users className="size-8 text-primary" />
           </div>
-          <h3 className="text-lg font-medium text-foreground">Aún no tienes clientes registrados</h3>
+          <h3 className="text-lg font-medium text-foreground">
+            Aún no tienes clientes registrados
+          </h3>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Crea tu primer cliente para comenzar a generar cotizaciones y gestionar tu cartera de forma profesional.
+            Crea tu primer cliente para comenzar a generar cotizaciones y gestionar tu cartera de
+            forma profesional.
           </p>
           <Button onClick={handleNew} className="mt-6 shadow-sm rounded-lg bg-electric-glow">
             Crear tu primer cliente
@@ -122,37 +136,47 @@ function ClientsPage() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 text-center border border-border/50 rounded-xl bg-card/50 shadow-sm backdrop-blur-sm">
           <Search className="size-10 text-muted-foreground/30 mb-3" />
-          <p className="text-foreground font-medium">No encontramos clientes para "{deferredTerm}"</p>
-          <p className="text-sm text-muted-foreground mt-1">Intenta con otros términos de búsqueda.</p>
+          <p className="text-foreground font-medium">
+            No encontramos clientes para "{deferredTerm}"
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Intenta con otros términos de búsqueda.
+          </p>
           <Button variant="outline" onClick={() => setTerm("")} className="mt-4 rounded-lg">
             Limpiar búsqueda
           </Button>
         </div>
       ) : (
         <div className="space-y-4">
-          <ClientsTable clients={paginated} isLoading={false} onEdit={handleEdit} onDelete={handleDelete} />
-          
+          <ClientsTable
+            clients={paginated}
+            isLoading={false}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+
           <div className="grid gap-4 md:hidden">
-            {paginated.map(client => (
-              <ClientMobileCard 
-                key={client.id} 
-                client={client} 
-                onEdit={handleEdit} 
-                onDelete={handleDelete} 
+            {paginated.map((client) => (
+              <ClientMobileCard
+                key={client.id}
+                client={client}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
               />
             ))}
           </div>
-          
+
           <div className="flex items-center justify-between pt-2">
             <p className="text-sm text-muted-foreground">
-              Mostrando {page * PAGE_SIZE + 1} a {Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length} clientes
+              Mostrando {page * PAGE_SIZE + 1} a {Math.min((page + 1) * PAGE_SIZE, filtered.length)}{" "}
+              de {filtered.length} clientes
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 rounded-lg"
-                onClick={() => setPage(p => Math.max(0, p - 1))}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
               >
                 <ChevronLeft className="size-4" />
@@ -161,7 +185,7 @@ function ClientsPage() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 rounded-lg"
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1}
               >
                 <ChevronRight className="size-4" />
@@ -171,19 +195,18 @@ function ClientsPage() {
         </div>
       )}
 
-      <ClientFormDialog 
-        draft={draft} 
-        isEditing={isEditing} 
-        onClose={() => setDraft(null)} 
-        onSave={handleSaveClient} 
+      <ClientFormDialog
+        draft={draft}
+        isEditing={isEditing}
+        onClose={() => setDraft(null)}
+        onSave={handleSaveClient}
       />
 
-      <ClientDeleteDialog 
-        client={clientToDelete} 
-        onClose={() => setClientToDelete(null)} 
-        onConfirm={handleDeleteConfirm} 
+      <ClientDeleteDialog
+        client={clientToDelete}
+        onClose={() => setClientToDelete(null)}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );
 }
-

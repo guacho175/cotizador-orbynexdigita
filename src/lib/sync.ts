@@ -73,68 +73,139 @@ export function isOnline(): boolean {
 
 /* ------------------------------------------------------------------ pull */
 
-export async function pullAll(userId: string): Promise<void> {
-  if (!isOnline()) return;
-  const pending = await db.outbox.count();
-  if (pending > 0) {
-    // Local edits are authoritative until they are pushed.
-    await flushOutbox();
-    if ((await db.outbox.count()) > 0) return;
-  }
+let activePullPromise: Promise<void> | null = null;
+let activePullUserId: string | null = null;
 
-  const [businesses, clients, quotes, items] = await Promise.all([
-    supabase.from("businesses").select("*").eq("user_id", userId),
-    supabase.from("clients").select("*").eq("user_id", userId),
-    supabase.from("quotes").select("*").eq("user_id", userId),
-    supabase.from("quote_items").select("*").eq("user_id", userId),
+type SyncListener = () => void;
+const syncListeners = new Set<SyncListener>();
+
+export function subscribeSyncState(listener: SyncListener): () => void {
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
+}
+
+function notifySyncListeners() {
+  for (const listener of syncListeners) {
+    try {
+      listener();
+    } catch (e) {
+      console.error("[sync] listener error", e);
+    }
+  }
+}
+
+export function isPulling(): boolean {
+  return activePullPromise !== null;
+}
+
+export function resetSyncState() {
+  activePullPromise = null;
+  activePullUserId = null;
+  started = false;
+  notifySyncListeners();
+}
+
+export async function ensureInitialSync(userId: string, maxWaitMs = 3500): Promise<void> {
+  if (!isOnline()) return;
+
+  const [lastPullUserId, lastPullAt] = await Promise.all([
+    getMeta<string>("last_pull_user_id"),
+    getMeta<string>("last_pull_at"),
   ]);
 
-  const firstError = businesses.error || clients.error || quotes.error || items.error;
-  if (firstError) throw firstError;
+  if (lastPullUserId === userId && lastPullAt) {
+    if (!activePullPromise) {
+      void pullAll(userId);
+    }
+    return;
+  }
 
-  const localBusinesses = await db.businesses.where("user_id").equals(userId).toArray();
+  const pull = pullAll(userId);
+  await Promise.race([pull, new Promise((resolve) => setTimeout(resolve, maxWaitMs))]);
+}
 
-  const businessesToPut = await Promise.all(
-    (businesses.data ?? []).map(async (row) => {
-      const localBiz = localBusinesses.find((b) => b.id === row.id);
+export function pullAll(userId: string): Promise<void> {
+  if (activePullPromise && activePullUserId === userId) {
+    return activePullPromise;
+  }
 
-      let currentLogoData = localBiz?.logo_data ?? null;
-
-      // Si no tenemos logo local o si el path del logo en el servidor es distinto al que teníamos
-      if (row.logo_path && (!currentLogoData || localBiz?.logo_path !== row.logo_path)) {
-        try {
-          const { data, error } = await supabase.storage.from("logos").download(row.logo_path);
-          if (data && !error) {
-            currentLogoData = await new Promise<string | null>((resolve) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(String(reader.result));
-              reader.onerror = () => resolve(null);
-              reader.readAsDataURL(data);
-            });
-          }
-        } catch (e) {
-          console.error("[sync] failed to download logo", e);
-        }
+  activePullUserId = userId;
+  activePullPromise = (async () => {
+    try {
+      if (!isOnline()) return;
+      const pending = await db.outbox.count();
+      if (pending > 0) {
+        // Local edits are authoritative until they are pushed.
+        await flushOutbox();
+        if ((await db.outbox.count()) > 0) return;
       }
 
-      return { ...(row as unknown as Business), logo_data: currentLogoData || null };
-    }),
-  );
+      const [businesses, clients, quotes, items] = await Promise.all([
+        supabase.from("businesses").select("*").eq("user_id", userId),
+        supabase.from("clients").select("*").eq("user_id", userId),
+        supabase.from("quotes").select("*").eq("user_id", userId),
+        supabase.from("quote_items").select("*").eq("user_id", userId),
+      ]);
 
-  await db.transaction("rw", [db.businesses, db.clients, db.quotes, db.items], async () => {
-    await Promise.all([
-      db.businesses.clear(),
-      db.clients.clear(),
-      db.quotes.clear(),
-      db.items.clear(),
-    ]);
-    await db.businesses.bulkPut(businessesToPut);
-    await db.clients.bulkPut((clients.data ?? []) as unknown as Client[]);
-    await db.quotes.bulkPut((quotes.data ?? []) as unknown as Quote[]);
-    await db.items.bulkPut((items.data ?? []) as unknown as QuoteItem[]);
-  });
+      const firstError = businesses.error || clients.error || quotes.error || items.error;
+      if (firstError) throw firstError;
 
-  await setMeta("last_pull_at", new Date().toISOString());
+      const localBusinesses = await db.businesses.where("user_id").equals(userId).toArray();
+
+      // Guardar inmediatamente cotizaciones, clientes, items y empresas para no bloquear la interfaz
+      const initialBusinesses = (businesses.data ?? []).map((row) => {
+        const localBiz = localBusinesses.find((b) => b.id === row.id);
+        return { ...(row as unknown as Business), logo_data: localBiz?.logo_data ?? null };
+      });
+
+      await db.transaction("rw", [db.businesses, db.clients, db.quotes, db.items], async () => {
+        await Promise.all([
+          db.businesses.clear(),
+          db.clients.clear(),
+          db.quotes.clear(),
+          db.items.clear(),
+        ]);
+        await db.businesses.bulkPut(initialBusinesses);
+        await db.clients.bulkPut((clients.data ?? []) as unknown as Client[]);
+        await db.quotes.bulkPut((quotes.data ?? []) as unknown as Quote[]);
+        await db.items.bulkPut((items.data ?? []) as unknown as QuoteItem[]);
+      });
+
+      await setMeta("last_pull_at", new Date().toISOString());
+      await setMeta("last_pull_user_id", userId);
+
+      // Descarga de logotipos en segundo plano si difieren o faltan localmente
+      for (const row of businesses.data ?? []) {
+        const localBiz = localBusinesses.find((b) => b.id === row.id);
+        const hasCachedLogo = localBiz?.logo_data && localBiz?.logo_path === row.logo_path;
+        if (row.logo_path && !hasCachedLogo) {
+          try {
+            const { data, error } = await supabase.storage.from("logos").download(row.logo_path);
+            if (data && !error) {
+              const base64 = await new Promise<string | null>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result));
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(data);
+              });
+              if (base64) {
+                await db.businesses.update(row.id, { logo_data: base64 });
+              }
+            }
+          } catch (e) {
+            console.error("[sync] failed to download logo", e);
+          }
+        }
+      }
+    } finally {
+      activePullPromise = null;
+      activePullUserId = null;
+      notifySyncListeners();
+    }
+  })();
+
+  notifySyncListeners();
+  return activePullPromise;
 }
 
 /* ------------------------------------------------------------------ push */
@@ -315,13 +386,9 @@ export function startSync(userId: string) {
     void flushOutbox();
   };
 
-  void (async () => {
-    try {
-      await pullAll(userId);
-    } catch (error) {
-      console.error("[sync] pull failed", error);
-    }
-  })();
+  void pullAll(userId).catch((error) => {
+    console.error("[sync] pull failed", error);
+  });
 
   if (started || typeof window === "undefined") return () => {};
   started = true;
