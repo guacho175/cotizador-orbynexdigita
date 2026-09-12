@@ -16,6 +16,7 @@ import appCss from "../styles.css?url";
 import { registerServiceWorker } from "../lib/pwa";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { PrivacyNotice } from "@/components/layout/privacy-notice";
 
 function NotFoundComponent() {
   return (
@@ -123,6 +124,16 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="es">
       <head>
         <HeadContent />
+        <script
+          type="text/javascript"
+          dangerouslySetInnerHTML={{
+            __html: `(function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "yh7f161pxg");`,
+          }}
+        />
       </head>
       <body>
         {children}
@@ -151,6 +162,7 @@ function RootComponent() {
     <>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <PrivacyNotice />
       <Toaster position="top-center" richColors closeButton />
     </>
   );
